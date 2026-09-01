@@ -1,0 +1,169 @@
+<Window x:Class="ModuKeymapStudio.BuildWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MODU Keymap Studio (Unofficial, by Jujin Kim) · 펌웨어 빌드"
+        Width="1120" Height="820" MinWidth="900" MinHeight="650"
+        Background="{StaticResource WindowBrush}" Foreground="{StaticResource TextBrush}"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Loaded="Window_Loaded" Closing="Window_Closing">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="펌웨어 빌드" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock Text="환경을 먼저 진단한 뒤 기존 build.ps1로 왼쪽과 오른쪽 UF2를 만듭니다."
+                       Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="0,18,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="ZMK app" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <TextBox Grid.Column="1" x:Name="ZmkPathBox" FontFamily="Consolas" TextChanged="ZmkPathBox_TextChanged"
+                     ToolTip="일반적으로 C:\zmk\app입니다. 경로에는 ASCII 문자만 사용할 수 있습니다." />
+            <Button Grid.Column="2" Content="폴더 선택" Margin="8,0,0,0" Click="Browse_Click" />
+        </Grid>
+
+        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1" CornerRadius="10" Padding="8">
+            <TabControl x:Name="BuildTabs">
+                <TabItem x:Name="EnvironmentTab" Header="환경 확인">
+                    <Grid Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid Margin="4,2,4,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="이 PC에서 실제 빌드 도구를 실행해 준비 상태를 확인합니다."
+                                           FontSize="15" FontWeight="SemiBold" />
+                                <TextBlock Text="검사는 파일을 설치하거나 수정하지 않습니다."
+                                           Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" x:Name="EnvironmentSummaryText" Text="확인 전"
+                                       Foreground="{StaticResource MutedBrush}" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" Margin="16,0,4,0" />
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="EnvironmentChecksList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource PanelAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1" CornerRadius="7" Padding="10,8" Margin="3,0,3,7">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="64" />
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding StatusLabel}" Foreground="{Binding StatusBrush}"
+                                                           FontWeight="Bold" VerticalAlignment="Top" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold"
+                                                           Margin="6,0,12,0" VerticalAlignment="Top" />
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Guidance}" Foreground="#8A5A00" TextWrapping="Wrap"
+                                                               Margin="0,3,0,0" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <Border Grid.Row="2" Background="#EFF7FF" BorderBrush="#BDD7EE" BorderThickness="1"
+                                CornerRadius="7" Padding="10" Margin="3,5,3,2">
+                            <TextBlock Text="사전 점검은 도구와 워크스페이스가 실행 가능한지 확인합니다. 소스·설정 오류까지 포함한 최종 판정은 실제 west build 결과입니다."
+                                       Foreground="#285275" TextWrapping="Wrap" />
+                        </Border>
+                    </Grid>
+                </TabItem>
+
+                <TabItem x:Name="SetupGuideTab" Header="설치 가이드">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="14">
+                            <TextBlock Text="west와 Zephyr SDK" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Margin="0,6,0,14" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}">
+                                <Run Text="west" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                                <Run Text="는 ZMK·Zephyr 소스와 모듈을 한 워크스페이스로 관리하고 build 명령을 연결하는 Python 도구입니다. " />
+                                <Run Text="Zephyr SDK" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                                <Run Text="는 nRF52840용 코드를 만드는 ARM 컴파일러·어셈블러·링커와 호스트 도구를 제공합니다." />
+                            </TextBlock>
+
+                            <TextBlock Text="Windows 설치 순서" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="1. 공식 ZMK Native Setup에서 Windows 의존성을 설치합니다. ZMK는 최신 CMake 3.x를 권장합니다."
+                                       TextWrapping="Wrap" Margin="0,6,0,3" />
+                            <TextBlock Text="2. PowerShell에서 아래 명령을 순서대로 실행합니다. 이미 C:\zmk가 있다면 clone 단계는 건너뜁니다."
+                                       TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <TextBox x:Name="SetupCommandsBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                     FontFamily="Consolas" FontSize="12" Height="245" />
+                            <TextBlock Text="3. 이 창에서 C:\zmk\app을 선택하고 환경 확인을 다시 누릅니다."
+                                       TextWrapping="Wrap" Margin="0,9,0,10" />
+
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="ZMK 공식 Native Setup" Click="OpenZmkGuide_Click" Margin="0,0,8,0" />
+                                <Button Content="Zephyr 공식 시작 가이드" Click="OpenZephyrGuide_Click" Margin="0,0,8,0" />
+                                <Button Content="west sdk 문서" Click="OpenWestSdkGuide_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem x:Name="AllLogTab" Header="전체 로그">
+                    <TextBox x:Name="AllLogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas" FontSize="12" />
+                </TabItem>
+                <TabItem Header="왼쪽 · modu_left">
+                    <TextBox x:Name="LeftLogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas" FontSize="12" />
+                </TabItem>
+                <TabItem Header="오른쪽 · modu_right">
+                    <TextBox x:Name="RightLogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas" FontSize="12" />
+                </TabItem>
+            </TabControl>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock x:Name="BuildStatusText" Text="빌드 환경을 확인하세요."
+                           Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" />
+                <ProgressBar x:Name="BuildProgress" Height="4" Margin="0,8,18,0"
+                             IsIndeterminate="True" Visibility="Collapsed" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="OpenOutputsButton" Content="결과 폴더" IsEnabled="False"
+                        Margin="0,0,8,0" Click="OpenOutputs_Click" />
+                <Button x:Name="CheckEnvironmentButton" Content="환경 확인" Margin="0,0,8,0"
+                        Click="CheckEnvironment_Click" />
+                <Button x:Name="CancelBuildButton" Content="취소" IsEnabled="False"
+                        Margin="0,0,8,0" Click="Cancel_Click" />
+                <Button x:Name="StartBuildButton" Content="빌드 시작" IsEnabled="False"
+                        Style="{StaticResource AccentButton}" Click="Start_Click" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

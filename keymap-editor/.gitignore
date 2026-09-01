@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+dist/
+.dotnet-home/
+.nuget/
+
+# The repository-level **/build/ rule also matches this C# namespace folder on Windows.
+!src/ModuKeymapStudio.Core/Build/
+!src/ModuKeymapStudio.Core/Build/*.cs

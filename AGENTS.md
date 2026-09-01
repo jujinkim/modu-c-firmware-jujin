@@ -3,9 +3,9 @@
 This is a ZMK firmware repository for the MODU-C split keyboard. The scope of
 all requested implementation work is **key remapping only**.
 
-## Allowed change
+## Allowed firmware change
 
-Only edit this tracked source file:
+Only edit this firmware source file:
 
 - `modu-module/boards/shields/modu/modu.keymap`
 
@@ -14,17 +14,42 @@ The `bindings` in this file define the layouts for `default_layer` and
 tree structure, includes, and copyright header unless a requested keymap
 change specifically requires otherwise.
 
-## Do not modify
+## Separate keymap tooling
 
-Do not edit, add, remove, or reformat any firmware source, board/shield
+The repository-root `keymap-editor/` directory is an independent, local tool
+for visually editing the allowed keymap. Files within that directory may be
+created and maintained as needed, including its own dependencies and
+documentation. The tool must not be imported by, referenced from, or coupled
+to the firmware build.
+
+`modu.keymap` remains the firmware source of truth. The tool may read it and
+write an edited version of it, but must not rewrite unrelated firmware files.
+
+The native editor targets Windows 10/11 x64 and is published as a portable,
+self-contained executable. Build and test it from the repository root with:
+
+```powershell
+.\keymap-editor\test.ps1
+.\keymap-editor\publish.ps1
+```
+
+The published application is written to
+`keymap-editor/dist/ModuKeymapStudio.exe`. The tool's `bin/`, `obj/`, and
+`dist/` directories are generated artifacts and must not be committed. The
+application may invoke the existing root `build.ps1` after saving the keymap,
+but it must not alter that script or any firmware build configuration.
+
+## Do not modify firmware support files
+
+Do not edit, add, remove, or reformat any other firmware source, board/shield
 definition, build configuration, module configuration, documentation, scripts,
 or CI files. In particular, do not change `build.ps1`, `build.bat`,
 `modu.keymap`'s surrounding DTS structure, `.conf` files, `.yml` files,
 `CMakeLists.txt`, `Kconfig*`, or files under `tools/`.
 
-Do not update dependencies, run code generators, or make incidental cleanup
-changes. This `AGENTS.md` is the sole exception to the keymap-only rule because
-it records the project working agreement.
+Do not update firmware dependencies, run firmware code generators, or make
+incidental firmware cleanup changes. This `AGENTS.md` is the sole exception to
+the keymap-only firmware rule because it records the project working agreement.
 
 ## Build verification
 
@@ -50,6 +75,7 @@ environment.
 ## Before handoff
 
 Review `git diff -- modu-module/boards/shields/modu/modu.keymap` and confirm
-that no tracked file other than the keymap (plus this rules file when it is
-being introduced or deliberately maintained) changed. Report any unverified
-build accurately rather than treating it as successful.
+that no tracked firmware file other than the keymap changed. Files within
+`keymap-editor/` and this rules file are permitted when they are part of the
+separate keymap-tool work. Report any unverified build accurately rather than
+treating it as successful.

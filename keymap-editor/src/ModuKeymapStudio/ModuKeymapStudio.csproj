@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ModuKeymapStudio</AssemblyName>
+    <RootNamespace>ModuKeymapStudio</RootNamespace>
+    <AssemblyTitle>MODU Keymap Studio (Unofficial, by Jujin Kim)</AssemblyTitle>
+    <Product>MODU Keymap Studio (Unofficial, by Jujin Kim)</Product>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ModuKeymapStudio.Core\ModuKeymapStudio.Core.csproj" />
+  </ItemGroup>
+</Project>
