@@ -59,6 +59,9 @@ public partial class MainWindow : Window
     {
         if (_startupComplete) return;
         _startupComplete = true;
+
+        new AboutWindow { Owner = this }.ShowDialog();
+
         var path = RepositoryLocator.FindKeymap(AppContext.BaseDirectory, Environment.CurrentDirectory);
         if (path is not null) LoadKeymap(path);
         else
@@ -110,6 +113,11 @@ public partial class MainWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e) => SaveDocument(saveAs: false);
     private void SaveAs_Click(object sender, RoutedEventArgs e) => SaveDocument(saveAs: true);
+
+    private void About_Click(object sender, RoutedEventArgs e)
+    {
+        new AboutWindow { Owner = this }.ShowDialog();
+    }
 
     private bool SaveDocument(bool saveAs)
     {
@@ -616,7 +624,7 @@ public partial class MainWindow : Window
         LayerTitleText.Text = $"{layer.DisplayName} · {KeymapDocument.ModuEditableKeyCount}키";
         DirtyText.Text = IsDirty ? "● 저장되지 않음" : "저장됨";
         DirtyText.Foreground = new SolidColorBrush(IsDirty ? Color.FromRgb(154, 101, 0) : Color.FromRgb(16, 124, 65));
-        Title = (IsDirty ? "* " : string.Empty) + "MODU Keymap Studio (Unofficial, by Jujin Kim) — " + Path.GetFileName(_file.Path);
+        Title = (IsDirty ? "* " : string.Empty) + "Unofficial MODU Keymap Studio — " + Path.GetFileName(_file.Path);
         UndoButton.IsEnabled = _history?.CanUndo == true;
         RedoButton.IsEnabled = _history?.CanRedo == true;
         DeleteLayerButton.IsEnabled = _selectedLayer != 0;
@@ -646,7 +654,7 @@ public partial class MainWindow : Window
     private bool ConfirmDiscardChanges()
     {
         if (!IsDirty) return true;
-        var result = MessageBox.Show(this, "저장되지 않은 변경이 있습니다. 저장할까요?", "MODU Keymap Studio",
+        var result = MessageBox.Show(this, "저장되지 않은 변경이 있습니다. 저장할까요?", "Unofficial MODU Keymap Studio",
             MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
         if (result == MessageBoxResult.Cancel) return false;
         return result != MessageBoxResult.Yes || SaveDocument(saveAs: false);

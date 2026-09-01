@@ -1,4 +1,4 @@
-# MODU Keymap Studio (Unofficial, by Jujin Kim)
+# Unofficial MODU Keymap Studio
 
 MODU-C의 ZMK `modu.keymap`을 시각적으로 편집하는 Windows 10/11 x64용 네이티브 앱입니다. .NET 8 WPF로 작성되었으며 키맵 편집에는 Python, 브라우저, 로컬 웹 서버가 필요하지 않습니다. 펌웨어를 컴파일할 때만 별도의 ZMK/Zephyr 개발 환경이 필요합니다.
 
@@ -23,6 +23,7 @@ MODU-C의 ZMK `modu.keymap`을 시각적으로 편집하는 Windows 10/11 x64용
 - 기본 레이어 삭제 방지, 참조 중/심볼형 레이어 삭제 차단, 상위 숫자 참조 자동 보정
 - Python, west, west 워크스페이스, `west build`, CMake/Ninja, ARM Zephyr SDK 사전 점검과 항목별 설치 안내
 - 기존 저장소 `build.ps1`을 통한 좌/우 펌웨어 빌드, 로그 분리, 취소 및 결과 폴더 열기
+- 앱 시작 시 먼저 표시되고 우측 하단에서 다시 열 수 있는 About 창에서 프로그램 버전, 비공식 도구 및 사용자 책임 안내, 프로젝트·원본 펌웨어·사용자 매뉴얼 링크 제공
 
 키맵 파서는 바인딩의 원문 위치만 패치합니다. 헤더, 주석, 공백, 줄바꿈과 키맵 밖의 DTS 내용은 그대로 보존하며, 무수정 저장은 원본 바이트를 그대로 기록합니다. 저장 전 모든 레이어가 정확히 67개 바인딩인지 검증합니다.
 

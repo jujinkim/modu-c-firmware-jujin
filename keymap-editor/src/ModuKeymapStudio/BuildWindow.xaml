@@ -1,7 +1,7 @@
 <Window x:Class="ModuKeymapStudio.BuildWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MODU Keymap Studio (Unofficial, by Jujin Kim) · 펌웨어 빌드"
+        Title="Unofficial MODU Keymap Studio · 펌웨어 빌드"
         Width="1120" Height="820" MinWidth="900" MinHeight="650"
         Background="{StaticResource WindowBrush}" Foreground="{StaticResource TextBrush}"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"

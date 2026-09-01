@@ -13,11 +13,10 @@ public partial class App : Application
         }
         DispatcherUnhandledException += (_, args) =>
         {
-            MessageBox.Show(args.Exception.Message, "MODU Keymap Studio", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(args.Exception.Message, "Unofficial MODU Keymap Studio", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
         base.OnStartup(e);
         new MainWindow().Show();
     }
 }
-
