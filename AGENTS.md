@@ -34,7 +34,7 @@ self-contained executable. Build and test it from the repository root with:
 ```
 
 The published application is written to
-`keymap-editor/dist/ModuKeymapStudio.exe`. The tool's `bin/`, `obj/`, and
+`keymap-editor/dist/UnofficialModuKeymapStudio.exe`. The tool's `bin/`, `obj/`, and
 `dist/` directories are generated artifacts and must not be committed. The
 application may invoke the existing root `build.ps1` after saving the keymap,
 but it must not alter that script or any firmware build configuration.

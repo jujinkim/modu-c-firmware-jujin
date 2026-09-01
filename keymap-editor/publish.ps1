@@ -17,7 +17,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Publishing failed with exit code $LASTEXITCODE"
 }
 
-$executable = Join-Path $dist "ModuKeymapStudio.exe"
+$executable = Join-Path $dist "UnofficialModuKeymapStudio.exe"
 if (-not (Test-Path -LiteralPath $executable)) {
     throw "Published executable was not found: $executable"
 }

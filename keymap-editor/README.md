@@ -50,7 +50,7 @@ dotnet run --project .\keymap-editor\src\ModuKeymapStudio\ModuKeymapStudio.cspro
 .\keymap-editor\publish.ps1
 ```
 
-`keymap-editor/dist/ModuKeymapStudio.exe`에 `win-x64` self-contained 단일 파일을 만들고 smoke test를 실행합니다. `bin/`, `obj/`, `dist/`는 생성물이며 Git에 포함되지 않습니다.
+`keymap-editor/dist/UnofficialModuKeymapStudio.exe`에 `win-x64` self-contained 단일 파일을 만들고 smoke test를 실행합니다. `bin/`, `obj/`, `dist/`는 생성물이며 Git에 포함되지 않습니다.
 
 ## 펌웨어 빌드
 
