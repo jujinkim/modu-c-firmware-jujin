@@ -67,7 +67,12 @@
             <Border Grid.Column="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="18">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="선택한 키" FontWeight="SemiBold" FontSize="16" />
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Content="?" Width="29" Height="29" Padding="0"
+                                    FontWeight="Bold" FontSize="15" ToolTip="K_·C_ 키코드 차이 도움말"
+                                    Click="KeySelectionHelp_Click" />
+                            <TextBlock Text="선택한 키" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
+                        </DockPanel>
                         <TextBlock x:Name="SelectedKeyText" Text="키를 클릭해 바인딩을 편집하세요." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,14" TextWrapping="Wrap" />
 
                         <DockPanel>

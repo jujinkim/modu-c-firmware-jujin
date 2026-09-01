@@ -119,6 +119,11 @@ public partial class MainWindow : Window
         new AboutWindow { Owner = this }.ShowDialog();
     }
 
+    private void KeySelectionHelp_Click(object sender, RoutedEventArgs e)
+    {
+        new KeySelectionHelpWindow { Owner = this }.ShowDialog();
+    }
+
     private bool SaveDocument(bool saveAs)
     {
         if (_document is null || _file is null) return false;
