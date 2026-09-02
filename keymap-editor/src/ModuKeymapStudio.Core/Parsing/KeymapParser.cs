@@ -66,8 +66,18 @@ public static partial class KeymapParser
             {
                 var (bodyStart, bodyEnd) = bindingProperty.Value;
                 var bindings = ParseBindings(source, mask, bodyStart, bodyEnd);
-                var displayName = FindDisplayName(source, afterName + 1, blockClose) ?? nodeName;
-                layers.Add(new Layer(layers.Count, nodeName, displayName, nameStart, blockEnd, bodyStart, bodyEnd, bindings));
+                var displayName = FindDisplayName(source, afterName + 1, blockClose);
+                layers.Add(new Layer(
+                    layers.Count,
+                    nodeName,
+                    displayName?.Value ?? nodeName,
+                    nameStart,
+                    blockEnd,
+                    bodyStart,
+                    bodyEnd,
+                    bindings,
+                    displayName?.Start,
+                    displayName?.End));
             }
 
             cursor = blockEnd;
@@ -115,13 +125,16 @@ public static partial class KeymapParser
         return bindings;
     }
 
-    private static string? FindDisplayName(string source, int start, int end)
+    private static DisplayNameLocation? FindDisplayName(string source, int start, int end)
     {
         var block = source[start..end];
         var match = DisplayNameRegex().Match(block);
         if (!match.Success) return null;
-        return Regex.Unescape(match.Groups["value"].Value);
+        var value = match.Groups["value"];
+        return new DisplayNameLocation(Regex.Unescape(value.Value), start + value.Index, start + value.Index + value.Length);
     }
+
+    private sealed record DisplayNameLocation(string Value, int Start, int End);
 
     internal static int FindMatching(string mask, int openingIndex, char opening, char closing)
     {
@@ -206,4 +219,3 @@ public static partial class KeymapParser
     [GeneratedRegex("\\bdisplay-name\\s*=\\s*\"(?<value>(?:\\\\.|[^\"\\\\])*)\"\\s*;", RegexOptions.CultureInvariant)]
     private static partial Regex DisplayNameRegex();
 }
-

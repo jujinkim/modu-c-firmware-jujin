@@ -1,4 +1,5 @@
 using System.Windows;
+using ModuKeymapStudio.Services;
 
 namespace ModuKeymapStudio;
 
@@ -17,6 +18,13 @@ public partial class App : Application
             args.Handled = true;
         };
         base.OnStartup(e);
+        ThemeManager.Initialize();
         new MainWindow().Show();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        ThemeManager.Shutdown();
+        base.OnExit(e);
     }
 }

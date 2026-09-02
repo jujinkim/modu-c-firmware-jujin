@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="About · Unofficial MODU Keymap Studio"
         Width="650" Height="700" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource WindowBrush}" Foreground="{DynamicResource TextBrush}">
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -15,39 +15,39 @@
         </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal">
-            <Border Width="54" Height="54" CornerRadius="13" Background="{StaticResource AccentBrush}">
-                <TextBlock Text="M" Foreground="White" FontSize="29" FontWeight="Bold"
+            <Border Width="54" Height="54" CornerRadius="13" Background="{DynamicResource AccentBrush}">
+                <TextBlock Text="M" Foreground="{DynamicResource AccentForegroundBrush}" FontSize="29" FontWeight="Bold"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <StackPanel Margin="15,1,0,0" VerticalAlignment="Center">
                 <TextBlock Text="Unofficial MODU Keymap Studio" FontSize="22" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                    <TextBlock Text="by Jujin Kim" Foreground="{StaticResource MutedBrush}" />
-                    <TextBlock Text="  ·  " Foreground="{StaticResource MutedBrush}" />
-                    <TextBlock x:Name="VersionText" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="by Jujin Kim" Foreground="{DynamicResource MutedBrush}" />
+                    <TextBlock Text="  ·  " Foreground="{DynamicResource MutedBrush}" />
+                    <TextBlock x:Name="VersionText" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" />
                 </StackPanel>
             </StackPanel>
         </StackPanel>
 
-        <Border Grid.Row="1" Background="#EAF3FC" BorderBrush="#9BC4EA" BorderThickness="1"
+        <Border Grid.Row="1" Background="{DynamicResource InfoPanelBrush}" BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="1"
                 CornerRadius="9" Padding="16,13" Margin="0,22,0,13">
             <StackPanel>
-                <TextBlock Text="임시 비공식 도구" FontWeight="SemiBold" Foreground="#094F91" />
+                <TextBlock Text="임시 비공식 도구" FontWeight="SemiBold" Foreground="{DynamicResource InfoTextBrush}" />
                 <TextBlock Margin="0,5,0,0" TextWrapping="Wrap" LineHeight="20"
                            Text="공식 키매퍼가 나오기 전에 제가 직접 빠르게 적용해 보려고 임시로 만든 비공식 도구입니다. 개인 사용 목적으로 만들어 심도 있는 테스트는 진행하지 않았으며, MODU-C 및 ZMK 프로젝트의 공식 앱이 아닙니다." />
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="2" Background="#FFF4E5" BorderBrush="#E7B66B" BorderThickness="1"
+        <Border Grid.Row="2" Background="{DynamicResource WarningPanelBrush}" BorderBrush="{DynamicResource WarningBorderBrush}" BorderThickness="1"
                 CornerRadius="9" Padding="16,13" Margin="0,0,0,13">
             <StackPanel>
-                <TextBlock Text="사용 전 주의" FontWeight="SemiBold" Foreground="#8A4B08" />
+                <TextBlock Text="사용 전 주의" FontWeight="SemiBold" Foreground="{DynamicResource WarningTextBrush}" />
                 <TextBlock Margin="0,5,0,0" TextWrapping="Wrap" LineHeight="20"
                            Text="이 프로그램의 사용, 키맵 변경, 펌웨어 빌드 및 플래싱으로 발생하는 문제나 손해는 사용자 책임입니다. 변경 전 원본 키맵과 정상 펌웨어를 백업하세요." />
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="3" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+        <Border Grid.Row="3" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="9" Padding="16,13" Margin="0,0,0,17">
             <StackPanel>
                 <TextBlock Text="지원 및 빌드 범위" FontWeight="SemiBold" />

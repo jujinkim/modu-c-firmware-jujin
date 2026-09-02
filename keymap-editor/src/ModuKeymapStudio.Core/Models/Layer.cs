@@ -8,5 +8,6 @@ public sealed record Layer(
     int BlockEnd,
     int BindingsStart,
     int BindingsEnd,
-    IReadOnlyList<Binding> Bindings);
-
+    IReadOnlyList<Binding> Bindings,
+    int? DisplayNameStart,
+    int? DisplayNameEnd);

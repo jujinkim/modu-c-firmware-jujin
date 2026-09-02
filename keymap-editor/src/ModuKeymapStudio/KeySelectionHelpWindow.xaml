@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="키 선택 도움말 · Unofficial MODU Keymap Studio"
         Width="620" Height="650" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource WindowBrush}" Foreground="{DynamicResource TextBrush}">
     <Grid Margin="27">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -16,21 +16,21 @@
 
         <DockPanel>
             <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="21"
-                    Background="{StaticResource AccentBrush}" Margin="0,0,13,0">
-                <TextBlock Text="?" Foreground="White" FontSize="23" FontWeight="Bold"
+                    Background="{DynamicResource AccentBrush}" Margin="0,0,13,0">
+                <TextBlock Text="?" Foreground="{DynamicResource AccentForegroundBrush}" FontSize="23" FontWeight="Bold"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="키코드가 여러 개라면" FontSize="20" FontWeight="SemiBold" />
                 <TextBlock Text="이름이 같아도 컴퓨터에 보내는 HID 신호가 다를 수 있습니다."
-                           Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0" />
+                           Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
             </StackPanel>
         </DockPanel>
 
-        <Border Grid.Row="1" Background="#EAF3FC" BorderBrush="#9BC4EA" BorderThickness="1"
+        <Border Grid.Row="1" Background="{DynamicResource InfoPanelBrush}" BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="1"
                 CornerRadius="9" Padding="16,13" Margin="0,21,0,12">
             <StackPanel>
-                <TextBlock Text="K_와 C_의 차이" FontWeight="SemiBold" Foreground="#094F91" />
+                <TextBlock Text="K_와 C_의 차이" FontWeight="SemiBold" Foreground="{DynamicResource InfoTextBrush}" />
                 <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" LineHeight="20">
                     <Run Text="K_" FontFamily="Consolas" FontWeight="SemiBold" /><Run Text="는 일반 Keyboard/Keypad HID, "/><Run Text="C_" FontFamily="Consolas" FontWeight="SemiBold" /><Run Text="는 볼륨·재생·밝기 같은 Consumer Control HID입니다. 같은 기능명도 운영체제와 앱이 한쪽 신호만 인식할 수 있습니다." />
                 </TextBlock>
@@ -39,7 +39,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+        <Border Grid.Row="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="9" Padding="16,13" Margin="0,0,0,12">
             <StackPanel>
                 <TextBlock Text="자주 헷갈리는 Back 예시" FontWeight="SemiBold" />
@@ -50,15 +50,15 @@
                     <LineBreak />
                     <Run Text="BSPC" FontFamily="Consolas" FontWeight="SemiBold" /><Run Text="  탐색이 아니라 앞 문자를 지우는 Backspace" />
                 </TextBlock>
-                <TextBlock Margin="0,7,0,0" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
+                <TextBlock Margin="0,7,0,0" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
                            Text="C_AC_의 AC는 Alt/Ctrl이 아니라 Application Control을 뜻합니다." />
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="3" Background="#FFF4E5" BorderBrush="#E7B66B" BorderThickness="1"
+        <Border Grid.Row="3" Background="{DynamicResource WarningPanelBrush}" BorderBrush="{DynamicResource WarningBorderBrush}" BorderThickness="1"
                 CornerRadius="9" Padding="16,12" Margin="0,0,0,16">
             <TextBlock TextWrapping="Wrap" LineHeight="20">
-                <Run Text="호환성 팁  " FontWeight="SemiBold" Foreground="#8A4B08" />
+                <Run Text="호환성 팁  " FontWeight="SemiBold" Foreground="{DynamicResource WarningTextBrush}" />
                 <Run Text="ZMK 표에서 사용하는 운영체제의 지원 여부를 확인하세요. Windows에서 브라우저·파일 탐색기 뒤로 가기가 동작하지 않으면 Alt+← 조합인 "/><Run Text="&amp;kp LA(LEFT)" FontFamily="Consolas" FontWeight="SemiBold" /><Run Text="도 사용할 수 있습니다." />
             </TextBlock>
         </Border>

@@ -268,7 +268,7 @@ public partial class BuildWindow : Window
 
     private void TrySaveSettings(string zmkPath)
     {
-        try { AppSettingsStore.Save(new AppSettings(zmkPath)); }
+        try { AppSettingsStore.SaveZmkAppPath(zmkPath); }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             MessageBox.Show(this, $"설정을 저장하지 못했습니다: {exception.Message}",
@@ -303,19 +303,13 @@ public partial class BuildWindow : Window
         _cancellation.Cancel();
     }
 
-    private static Brush BrushFor(EnvironmentCheckStatus status)
+    private static Brush BrushFor(EnvironmentCheckStatus status) => ThemeManager.GetBrush(status switch
     {
-        var color = status switch
-        {
-            EnvironmentCheckStatus.Passed => Color.FromRgb(16, 124, 65),
-            EnvironmentCheckStatus.Warning => Color.FromRgb(154, 101, 0),
-            EnvironmentCheckStatus.Failed => Color.FromRgb(196, 43, 28),
-            _ => Color.FromRgb(102, 112, 133)
-        };
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
-    }
+        EnvironmentCheckStatus.Passed => "SuccessBrush",
+        EnvironmentCheckStatus.Warning => "WarningBrush",
+        EnvironmentCheckStatus.Failed => "DangerBrush",
+        _ => "MutedBrush"
+    });
 
     private sealed record EnvironmentCheckDisplay(
         string StatusLabel,

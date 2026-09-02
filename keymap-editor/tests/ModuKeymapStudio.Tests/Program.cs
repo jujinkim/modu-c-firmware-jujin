@@ -6,10 +6,11 @@ using ModuKeymapStudio.Core.IO;
 using ModuKeymapStudio.Core.Keycodes;
 using ModuKeymapStudio.Core.Models;
 using ModuKeymapStudio.Core.Parsing;
+using ModuKeymapStudio.Services;
 
 var tests = new (string Name, Func<Task> Run)[]
 {
-    ("실제 키맵: 2개 레이어와 레이어당 67개 바인딩", RealKeymapShape),
+    ("실제 키맵: 레이어 수와 무관하게 레이어당 67개 바인딩", RealKeymapShape),
     ("실제 스위치가 없는 예약 슬롯 6개", NonexistentHardwareSlots),
     ("무수정 저장은 바이트 단위 동일", UnchangedRoundTrip),
     ("UTF-8 BOM은 수정 저장 후에도 보존", Utf8BomPreservation),
@@ -17,10 +18,16 @@ var tests = new (string Name, Func<Task> Run)[]
     ("단일 키 수정은 해당 바인딩만 변경", SingleBindingPatch),
     ("투명 레이어 추가와 현재 레이어 복제", AddAndCloneLayers),
     ("레이어 이름 검증", LayerNameValidation),
+    ("레이어 이름 변경은 최소 범위와 줄바꿈을 보존", RenameLayerPatches),
+    ("키 드래그 다섯 작업과 빈 자리 규칙", MoveBindingOperations),
+    ("키 드래그 변경은 한 번에 실행 취소", MoveBindingUndoRedo),
     ("기본/참조/심볼 레이어 삭제 차단", DeleteBlockers),
     ("레이어 삭제 후 상위 숫자 참조 보정", DeleteRenumbering),
     ("실행 취소와 다시 실행", UndoRedo),
     ("공식 ZMK 368개 키코드와 영문명·기호·별칭 검색", ZmkKeycodeCatalogCoverage),
+    ("LANG3/4/5 라벨과 부트로더 동작", LanguageLabelsAndBootloader),
+    ("500ms 홀드 부트로더·시스템 리셋 정의", SafetyHoldBehaviors),
+    ("테마 설정 JSON 호환성과 preference 병합", ThemeSettingsCompatibility),
     ("빌드 프로세스 성공/실패/취소", BuildProcessScenarios),
     ("빌드 환경 사전 점검 통과/실패", BuildEnvironmentPreflight)
 };
@@ -48,7 +55,7 @@ return failures.Count == 0 ? 0 : 1;
 static Task RealKeymapShape()
 {
     var document = LoadRealDocument();
-    Equal(2, document.Layers.Count, "레이어 수");
+    True(document.Layers.Count >= 2, "기본 레이어와 lower 레이어가 필요합니다.");
     True(document.Layers.All(layer => layer.Bindings.Count == KeymapDocument.ModuBindingCount), "모든 레이어가 67개 바인딩이어야 합니다.");
     Equal("default_layer", document.Layers[0].NodeName, "기본 레이어 이름");
     Equal("lower_layer", document.Layers[1].NodeName, "lower 레이어 이름");
@@ -134,12 +141,12 @@ static Task AddAndCloneLayers()
 {
     var document = LoadRealDocument();
     var transparent = KeymapEditor.AddLayer(document, "nav_layer", "탐색", false, 0);
-    Equal(3, transparent.Layers.Count, "추가 후 레이어 수");
-    Equal("탐색", transparent.Layers[2].DisplayName, "display-name");
-    True(transparent.Layers[2].Bindings.All(binding => binding.Raw == "&trans"), "투명 레이어 내용");
+    Equal(document.Layers.Count + 1, transparent.Layers.Count, "추가 후 레이어 수");
+    Equal("탐색", transparent.Layers[^1].DisplayName, "display-name");
+    True(transparent.Layers[^1].Bindings.All(binding => binding.Raw == "&trans"), "투명 레이어 내용");
 
     var clone = KeymapEditor.AddLayer(transparent, "copy_layer", "복제", true, 0);
-    True(clone.Layers[3].Bindings.Select(binding => binding.Raw).SequenceEqual(clone.Layers[0].Bindings.Select(binding => binding.Raw)), "복제 내용");
+    True(clone.Layers[^1].Bindings.Select(binding => binding.Raw).SequenceEqual(clone.Layers[0].Bindings.Select(binding => binding.Raw)), "복제 내용");
     return Task.CompletedTask;
 }
 
@@ -152,13 +159,103 @@ static Task LayerNameValidation()
     return Task.CompletedTask;
 }
 
+static Task RenameLayerPatches()
+{
+    foreach (var newLine in new[] { "\n", "\r\n" })
+    {
+        var source = File.ReadAllText(FindRealKeymap()).Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\n", newLine, StringComparison.Ordinal);
+        var document = KeymapParser.Parse(source);
+        var withDisplayName = document.Layers.First(layer => layer.DisplayNameStart is not null);
+        var displayStart = withDisplayName.DisplayNameStart!.Value;
+        var displayEnd = withDisplayName.DisplayNameEnd!.Value;
+        var expected = ReplaceRanges(source,
+            (withDisplayName.NodeStart, withDisplayName.NodeStart + withDisplayName.NodeName.Length, "renamed_layer"),
+            (displayStart, displayEnd, "이름 \\\"보존\\\""));
+        var renamed = KeymapEditor.RenameLayer(document, withDisplayName.Index, "renamed_layer", "이름 \"보존\"");
+        Equal(expected, renamed.Source, $"기존 display-name 최소 패치 ({(newLine == "\n" ? "LF" : "CRLF")})");
+        Equal("이름 \"보존\"", renamed.Layers[withDisplayName.Index].DisplayName, "이스케이프 표시 이름");
+
+        var withoutDisplayName = document.Layers.First(layer => layer.DisplayNameStart is null);
+        var inserted = KeymapEditor.RenameLayer(document, withoutDisplayName.Index, withoutDisplayName.NodeName, "새 표시 이름");
+        True(inserted.Source.Contains($"display-name = \"새 표시 이름\";{newLine}", StringComparison.Ordinal), "누락 display-name 삽입");
+        True(inserted.Source.Replace($"            display-name = \"새 표시 이름\";{newLine}", string.Empty, StringComparison.Ordinal) == source,
+            "display-name 삽입 외 원문이 바뀌었습니다.");
+    }
+
+    var validation = LoadRealDocument();
+    Throws<ArgumentException>(() => KeymapEditor.RenameLayer(validation, 0, "other_default", "Base"));
+    Throws<ArgumentException>(() => KeymapEditor.RenameLayer(validation, 1, validation.Layers[0].NodeName, "Lower"));
+    Throws<ArgumentException>(() => KeymapEditor.RenameLayer(validation, 1, "2bad", "Lower"));
+    Throws<ArgumentException>(() => KeymapEditor.RenameLayer(validation, 1, "lower_ok", "   "));
+    return Task.CompletedTask;
+}
+
+static Task MoveBindingOperations()
+{
+    var original = LoadRealDocument();
+    VerifyMove(original, 0, 0, 1, "&kp A", "&none", KeyMoveOperation.Move, "&none", "&kp A");
+    VerifyMove(original, 0, 0, 1, "&kp A", "&none", KeyMoveOperation.Copy, "&kp A", "&kp A");
+    VerifyMove(original, 0, 0, 1, "&kp A", "&kp B", KeyMoveOperation.OverwriteMove, "&none", "&kp A");
+    VerifyMove(original, 0, 0, 1, "&kp A", "&kp B", KeyMoveOperation.OverwriteCopy, "&kp A", "&kp A");
+    VerifyMove(original, 0, 0, 1, "&kp A", "&kp B", KeyMoveOperation.Swap, "&kp B", "&kp A");
+    VerifyMove(original, 1, 0, 1, "&kp A", "&trans", KeyMoveOperation.Move, "&trans", "&kp A");
+
+    var sourceEmpty = KeymapEditor.ReplaceBinding(original, 0, 0, "&none");
+    Throws<InvalidOperationException>(() => KeymapEditor.MoveBinding(sourceEmpty, 0, 0, 1, KeyMoveOperation.OverwriteMove));
+    Throws<ArgumentException>(() => KeymapEditor.MoveBinding(original, 0, 0, 0, KeyMoveOperation.Swap));
+    var assignedTarget = KeymapEditor.ReplaceBinding(original, 0, 1, "&kp B");
+    Throws<InvalidOperationException>(() => KeymapEditor.MoveBinding(assignedTarget, 0, 0, 1, KeyMoveOperation.Move));
+    var emptyTarget = KeymapEditor.ReplaceBinding(original, 0, 1, "&none");
+    Throws<InvalidOperationException>(() => KeymapEditor.MoveBinding(emptyTarget, 0, 0, 1, KeyMoveOperation.Swap));
+    Throws<ArgumentOutOfRangeException>(() => KeymapEditor.MoveBinding(original, 0, 0, 51, KeyMoveOperation.Swap));
+    return Task.CompletedTask;
+}
+
+static Task MoveBindingUndoRedo()
+{
+    var prepared = KeymapEditor.ReplaceBinding(LoadRealDocument(), 0, 1, "&none");
+    var moved = KeymapEditor.MoveBinding(prepared, 0, 0, 1, KeyMoveOperation.Move);
+    var history = new DocumentHistory(prepared.Source);
+    True(history.Push(moved.Source), "드래그 작업 push");
+    Equal(prepared.Source, history.Undo(), "드래그 전체 undo");
+    Equal(moved.Source, history.Redo(), "드래그 전체 redo");
+    True(!history.CanRedo, "redo 스택 상태");
+    return Task.CompletedTask;
+}
+
+static void VerifyMove(
+    KeymapDocument original,
+    int layerIndex,
+    int sourceIndex,
+    int targetIndex,
+    string sourceRaw,
+    string targetRaw,
+    KeyMoveOperation operation,
+    string expectedSourceRaw,
+    string expectedTargetRaw)
+{
+    var prepared = KeymapEditor.ReplaceBinding(original, layerIndex, sourceIndex, sourceRaw);
+    prepared = KeymapEditor.ReplaceBinding(prepared, layerIndex, targetIndex, targetRaw);
+    var source = prepared.Layers[layerIndex].Bindings[sourceIndex];
+    var target = prepared.Layers[layerIndex].Bindings[targetIndex];
+    var expected = ReplaceRanges(prepared.Source,
+        (source.Start, source.End, expectedSourceRaw),
+        (target.Start, target.End, expectedTargetRaw));
+    var updated = KeymapEditor.MoveBinding(prepared, layerIndex, sourceIndex, targetIndex, operation);
+    Equal(expected, updated.Source, $"{operation}은 두 바인딩 외 원문을 바꾸면 안 됩니다.");
+    Equal(expectedSourceRaw, updated.Layers[layerIndex].Bindings[sourceIndex].Raw, $"{operation} 원래 자리");
+    Equal(expectedTargetRaw, updated.Layers[layerIndex].Bindings[targetIndex].Raw, $"{operation} 대상 자리");
+}
+
 static Task DeleteBlockers()
 {
     var document = KeymapEditor.AddLayer(LoadRealDocument(), "third_layer", "Third", false, 0);
+    var addedLayerIndex = document.Layers.Count - 1;
     Throws<LayerDeletionException>(() => KeymapEditor.DeleteLayer(document, 0));
 
-    var referenced = KeymapEditor.ReplaceBinding(document, 0, 0, "&mo 2");
-    var referencedError = Throws<LayerDeletionException>(() => KeymapEditor.DeleteLayer(referenced, 2));
+    var referenced = KeymapEditor.ReplaceBinding(document, 0, 0, $"&mo {addedLayerIndex}");
+    var referencedError = Throws<LayerDeletionException>(() => KeymapEditor.DeleteLayer(referenced, addedLayerIndex));
     True(referencedError.References.Any(reference => reference.SourceLayerIndex == 0 && reference.KeyIndex == 0), "참조 위치 누락");
 
     var symbolic = KeymapEditor.ReplaceBinding(document, 0, 0, "&mo NAV_LAYER");
@@ -169,13 +266,14 @@ static Task DeleteBlockers()
 static Task DeleteRenumbering()
 {
     var document = LoadRealDocument();
+    var originalCount = document.Layers.Count;
     document = KeymapEditor.AddLayer(document, "third_layer", "Third", false, 0);
     document = KeymapEditor.AddLayer(document, "fourth_layer", "Fourth", false, 0);
-    document = KeymapEditor.ReplaceBinding(document, 0, 0, "&mo 3");
-    var deleted = KeymapEditor.DeleteLayer(document, 2);
-    Equal(3, deleted.Layers.Count, "삭제 후 레이어 수");
-    Equal("&mo 2", deleted.Layers[0].Bindings[0].Raw, "상위 참조 보정");
-    Equal("fourth_layer", deleted.Layers[2].NodeName, "정의 순서");
+    document = KeymapEditor.ReplaceBinding(document, 0, 0, $"&mo {originalCount + 1}");
+    var deleted = KeymapEditor.DeleteLayer(document, originalCount);
+    Equal(originalCount + 1, deleted.Layers.Count, "삭제 후 레이어 수");
+    Equal($"&mo {originalCount}", deleted.Layers[0].Bindings[0].Raw, "상위 참조 보정");
+    Equal("fourth_layer", deleted.Layers[originalCount].NodeName, "정의 순서");
     return Task.CompletedTask;
 }
 
@@ -214,6 +312,68 @@ static Task ZmkKeycodeCatalogCoverage()
 
     foreach (var code in new[] { "F24", "INT9", "LANG9", "KP_EQUAL_AS400", "K_COPY", "C_VOL_UP", "C_AC_NEW", "C_KBIA_ACCEPT", "C_POWER" })
         True(ZmkKeycodeCatalog.All.Any(item => item.Code == code), $"공식 키코드 누락: {code}");
+    return Task.CompletedTask;
+}
+
+static Task LanguageLabelsAndBootloader()
+{
+    Equal("カタカナ", ZmkKeycodeCatalog.All.Single(item => item.Code == "LANG3").KeycapLabel, "LANG3 키캡");
+    Equal("ひらがな", ZmkKeycodeCatalog.All.Single(item => item.Code == "LANG4").KeycapLabel, "LANG4 키캡");
+    Equal("半角/全角", ZmkKeycodeCatalog.All.Single(item => item.Code == "LANG5").KeycapLabel, "LANG5 키캡");
+
+    var bootloader = ZmkBehaviorCatalog.Bootloader;
+    Equal("&bootloader", bootloader.Binding, "부트로더 원문");
+    Equal("시스템·전원", bootloader.Category, "부트로더 분류");
+    True(bootloader.Matches("부트로더"), "부트로더 한글 검색");
+    True(bootloader.Matches("boot mode retention"), "boot-mode retention 검색");
+    True(bootloader.Detail.Contains("누른 쪽 하프", StringComparison.Ordinal), "분할 키보드 적용 범위 안내");
+    True(bootloader.Detail.Contains("일반 재시작", StringComparison.Ordinal), "MODU retention 주의 누락");
+
+    var document = LoadRealDocument();
+    var applied = KeymapEditor.ReplaceBinding(document, 0, 0, bootloader.Binding);
+    Equal("&bootloader", applied.Layers[0].Bindings[0].Raw, "부트로더 바인딩 적용");
+    return Task.CompletedTask;
+}
+
+static Task SafetyHoldBehaviors()
+{
+    var document = LoadRealDocument();
+    var heldBootloader = KeymapEditor.SetSafetyHoldBinding(document, 0, 0, SafetyHoldAction.Bootloader);
+    Equal(ZmkBehaviorCatalog.HeldBootloaderBinding, heldBootloader.Layers[0].Bindings[0].Raw, "홀드 부트로더 바인딩");
+    True(heldBootloader.Source.Contains("mks_boot_hold: mks_bootloader_hold", StringComparison.Ordinal), "홀드 부트로더 정의 누락");
+    True(heldBootloader.Source.Contains("tapping-term-ms = <500>;", StringComparison.Ordinal), "500ms 설정 누락");
+    True(heldBootloader.Source.Contains("flavor = \"tap-preferred\";", StringComparison.Ordinal), "tap-preferred 안전 설정 누락");
+    True(heldBootloader.Source.Contains("bindings = <&bootloader>, <&none>;", StringComparison.Ordinal), "부트로더/짧은 탭 동작");
+    True(heldBootloader.Source.IndexOf("behaviors {", StringComparison.Ordinal) < heldBootloader.Source.IndexOf("keymap {", StringComparison.Ordinal),
+        "새 behaviors 노드 위치");
+
+    var secondBootloader = KeymapEditor.SetSafetyHoldBinding(heldBootloader, 0, 1, SafetyHoldAction.Bootloader);
+    Equal(1, CountOccurrences(secondBootloader.Source, "mks_boot_hold: mks_bootloader_hold"), "홀드 정의 중복");
+    var heldReset = KeymapEditor.SetSafetyHoldBinding(secondBootloader, 0, 2, SafetyHoldAction.SystemReset);
+    Equal(ZmkBehaviorCatalog.HeldSystemResetBinding, heldReset.Layers[0].Bindings[2].Raw, "홀드 시스템 리셋 바인딩");
+    True(heldReset.Source.Contains("bindings = <&sys_reset>, <&none>;", StringComparison.Ordinal), "시스템 리셋/짧은 탭 동작");
+    Equal(1, CountOccurrences(heldReset.Source, "behaviors {"), "behaviors 노드 중복");
+
+    var history = new DocumentHistory(document.Source);
+    True(history.Push(heldBootloader.Source), "홀드 동작 push");
+    Equal(document.Source, history.Undo(), "정의와 바인딩 단일 undo");
+    return Task.CompletedTask;
+}
+
+static Task ThemeSettingsCompatibility()
+{
+    var legacy = AppSettingsStore.Deserialize("{\"ZmkAppPath\":\"C:\\\\zmk\\\\app\"}");
+    Equal(@"C:\zmk\app", legacy.ZmkAppPath, "기존 ZMK 경로 JSON");
+    Equal(ThemePreference.System, legacy.ThemePreference, "기존 설정의 System 기본값");
+
+    var dark = legacy with { ThemePreference = ThemePreference.Dark };
+    var darkJson = AppSettingsStore.Serialize(dark);
+    True(darkJson.Contains("\"ThemePreference\": \"Dark\"", StringComparison.Ordinal), "테마 문자열 직렬화");
+    Equal(@"C:\zmk\app", AppSettingsStore.Deserialize(darkJson).ZmkAppPath, "테마 저장 시 ZMK 경로 보존");
+
+    var changedPath = dark with { ZmkAppPath = @"D:\zmk\app" };
+    Equal(ThemePreference.Dark, AppSettingsStore.Deserialize(AppSettingsStore.Serialize(changedPath)).ThemePreference,
+        "ZMK 경로 저장 시 테마 보존");
     return Task.CompletedTask;
 }
 
@@ -308,6 +468,25 @@ static ProcessStartInfo Cmd(string command)
 }
 
 static KeymapDocument LoadRealDocument() => KeymapParser.Parse(File.ReadAllText(FindRealKeymap()));
+
+static string ReplaceRanges(string source, params (int Start, int End, string Value)[] replacements)
+{
+    foreach (var replacement in replacements.OrderByDescending(item => item.Start))
+        source = source[..replacement.Start] + replacement.Value + source[replacement.End..];
+    return source;
+}
+
+static int CountOccurrences(string source, string value)
+{
+    var count = 0;
+    var start = 0;
+    while ((start = source.IndexOf(value, start, StringComparison.Ordinal)) >= 0)
+    {
+        count++;
+        start += value.Length;
+    }
+    return count;
+}
 
 static string FindRealKeymap() => RepositoryLocator.FindKeymap(AppContext.BaseDirectory, Environment.CurrentDirectory)
     ?? throw new InvalidOperationException("실제 modu.keymap을 찾지 못했습니다.");

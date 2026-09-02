@@ -5,12 +5,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Controls.Primitives;
 using Microsoft.Win32;
 using ModuKeymapStudio.Core.Editing;
 using ModuKeymapStudio.Core.IO;
 using ModuKeymapStudio.Core.Keycodes;
 using ModuKeymapStudio.Core.Models;
 using ModuKeymapStudio.Core.Parsing;
+using ModuKeymapStudio.Services;
 
 namespace ModuKeymapStudio;
 
@@ -27,6 +29,15 @@ public partial class MainWindow : Window
     private int? _selectedKey;
     private bool _refreshing;
     private bool _startupComplete;
+    private Point? _dragStart;
+    private int? _dragSourceKey;
+    private Button? _dragSourceButton;
+    private Button? _dragTargetButton;
+    private Border? _dragSourceOverlay;
+    private Border? _dragGhost;
+    private bool _isDraggingKey;
+    private bool _dragCanStart;
+    private bool _changingTheme;
 
     public MainWindow()
     {
@@ -51,6 +62,17 @@ public partial class MainWindow : Window
         BehaviorBox.DisplayMemberPath = nameof(BehaviorChoice.Label);
         BehaviorBox.SelectedValuePath = nameof(BehaviorChoice.Code);
         BehaviorBox.SelectedIndex = 0;
+        ThemeBox.ItemsSource = new[]
+        {
+            new ThemeChoice("시스템", ThemePreference.System),
+            new ThemeChoice("라이트", ThemePreference.Light),
+            new ThemeChoice("다크", ThemePreference.Dark)
+        };
+        ThemeBox.DisplayMemberPath = nameof(ThemeChoice.Label);
+        ThemeBox.SelectedValuePath = nameof(ThemeChoice.Preference);
+        _changingTheme = true;
+        ThemeBox.SelectedValue = ThemeManager.Preference;
+        _changingTheme = false;
         SetDocumentControls(false);
         RefreshPresetList();
     }
@@ -200,6 +222,44 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RenameLayer_Click(object sender, RoutedEventArgs e)
+    {
+        if (_document is null) return;
+        var layer = _document.Layers[_selectedLayer];
+        var dialog = new RenameLayerWindow(
+            layer,
+            _document.Layers.Where(item => item.Index != layer.Index).Select(item => item.NodeName)) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            var updated = KeymapEditor.RenameLayer(_document, _selectedLayer, dialog.NodeName, dialog.DisplayName);
+            Commit(updated, _selectedLayer, _selectedKey);
+            StatusText.Text = $"레이어 이름을 {dialog.DisplayName}(으)로 변경했습니다.";
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            MessageBox.Show(this, exception.Message, "레이어 이름 변경 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void ThemeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_changingTheme || ThemeBox.SelectedValue is not ThemePreference preference) return;
+        try
+        {
+            _changingTheme = true;
+            ThemeManager.SetPreference(preference, save: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, $"테마 설정을 저장하지 못했습니다: {exception.Message}", "설정", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _changingTheme = false;
+        }
+    }
+
     private void DeleteLayer_Click(object sender, RoutedEventArgs e)
     {
         if (_document is null) return;
@@ -310,7 +370,14 @@ public partial class MainWindow : Window
         }
         try
         {
-            var updated = KeymapEditor.ReplaceBinding(_document, _selectedLayer, _selectedKey.Value, raw);
+            var updated = raw.Trim() switch
+            {
+                ZmkBehaviorCatalog.HeldBootloaderBinding => KeymapEditor.SetSafetyHoldBinding(
+                    _document, _selectedLayer, _selectedKey.Value, SafetyHoldAction.Bootloader),
+                ZmkBehaviorCatalog.HeldSystemResetBinding => KeymapEditor.SetSafetyHoldBinding(
+                    _document, _selectedLayer, _selectedKey.Value, SafetyHoldAction.SystemReset),
+                _ => KeymapEditor.ReplaceBinding(_document, _selectedLayer, _selectedKey.Value, raw)
+            };
             Commit(updated, _selectedLayer, _selectedKey);
             StatusText.Text = $"레이어 {_selectedLayer}, 키 {_selectedKey.Value + 1}을(를) {raw.Trim()}로 변경했습니다.";
         }
@@ -347,10 +414,10 @@ public partial class MainWindow : Window
             KeyboardPanel.Children.Add(new TextBlock
             {
                 Text = $"이 레이어에는 {bindings.Count}개 바인딩이 있습니다. MODU 키맵 형식에는 {KeymapDocument.ModuBindingCount}개가 필요합니다.",
-                Foreground = Brushes.Orange,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(20)
             });
+            ((TextBlock)KeyboardPanel.Children[^1]).SetResourceReference(TextBlock.ForegroundProperty, "WarningBrush");
             return;
         }
 
@@ -416,33 +483,260 @@ public partial class MainWindow : Window
             {
                 Text = tooltipText,
                 FontFamily = new FontFamily("Consolas"),
-                FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromRgb(32, 33, 36))
+                FontSize = 12
             },
-            Background = new SolidColorBrush(selected
-                ? Color.FromRgb(220, 235, 250)
-                : isTransparent ? Color.FromRgb(245, 246, 248) : Color.FromRgb(255, 255, 255)),
-            BorderBrush = new SolidColorBrush(selected
-                ? Color.FromRgb(15, 108, 189)
-                : isTransparent ? Color.FromRgb(225, 228, 232) : Color.FromRgb(201, 206, 214)),
             BorderThickness = new Thickness(selected ? 2 : 1)
         };
+        ApplyKeyButtonVisual(button, index);
         ToolTipService.SetInitialShowDelay(button, 250);
         ToolTipService.SetShowDuration(button, 30000);
-        button.Click += (_, _) =>
-        {
-            _selectedKey = index;
-            RefreshKeyboard();
-            RefreshSelectionEditor();
-        };
+        button.PreviewMouseLeftButtonDown += KeyButton_MouseLeftButtonDown;
+        button.PreviewMouseMove += KeyButton_MouseMove;
+        button.PreviewMouseLeftButtonUp += KeyButton_MouseLeftButtonUp;
         return button;
     }
+
+    private void KeyButton_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_document is null || sender is not Button button || button.Tag is not int index) return;
+        _dragStart = e.GetPosition(KeyboardPanel);
+        _dragSourceKey = index;
+        _dragSourceButton = button;
+        _dragCanStart = !KeymapEditor.IsEmptyBinding(_document.Layers[_selectedLayer].Bindings[index]);
+        _isDraggingKey = false;
+        button.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void KeyButton_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _dragStart is null || _dragSourceKey is null) return;
+        var current = e.GetPosition(KeyboardPanel);
+        if (!_isDraggingKey && _dragCanStart &&
+            (Math.Abs(current.X - _dragStart.Value.X) >= SystemParameters.MinimumHorizontalDragDistance ||
+             Math.Abs(current.Y - _dragStart.Value.Y) >= SystemParameters.MinimumVerticalDragDistance))
+        {
+            _isDraggingKey = true;
+            SetDragSourceVisual();
+            ShowDragGhost();
+            Mouse.OverrideCursor = Cursors.SizeAll;
+        }
+        if (!_isDraggingKey) return;
+
+        UpdateDragGhost(e.GetPosition(RootGrid));
+        var target = FindKeyButton(current);
+        if (target?.Tag is not int targetIndex || targetIndex == _dragSourceKey)
+            target = null;
+        SetDragTarget(target);
+        e.Handled = true;
+    }
+
+    private void KeyButton_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var sourceIndex = _dragSourceKey;
+        var wasDragging = _isDraggingKey;
+        var position = e.GetPosition(KeyboardPanel);
+        var target = FindKeyButton(position);
+        var targetIndex = target?.Tag as int?;
+        _dragSourceButton?.ReleaseMouseCapture();
+        e.Handled = true;
+
+        if (sourceIndex is null)
+        {
+            ResetDragState();
+            return;
+        }
+        if (!wasDragging)
+        {
+            ResetDragState();
+            _selectedKey = sourceIndex;
+            RefreshKeyboard();
+            RefreshSelectionEditor();
+            return;
+        }
+        if (target is null || targetIndex is null || targetIndex == sourceIndex)
+        {
+            ResetDragState();
+            return;
+        }
+        SetDragTarget(target);
+        StopDragPointerFeedback();
+        ShowDropMenu(target, sourceIndex.Value, targetIndex.Value);
+    }
+
+    private Button? FindKeyButton(Point position)
+    {
+        DependencyObject? current = KeyboardPanel.InputHitTest(position) as DependencyObject;
+        while (current is not null)
+        {
+            if (current is Button button && button.Tag is int index && KeymapDocument.IsEditableKeyIndex(index))
+                return button;
+            current = VisualTreeHelper.GetParent(current);
+        }
+        return null;
+    }
+
+    private void SetDragTarget(Button? target)
+    {
+        if (ReferenceEquals(target, _dragTargetButton)) return;
+        if (_dragTargetButton?.Tag is int oldIndex) ApplyKeyButtonVisual(_dragTargetButton, oldIndex);
+        _dragTargetButton = target;
+        if (target is null) return;
+        target.SetResourceReference(Control.BackgroundProperty, "DragTargetBrush");
+        target.SetResourceReference(Control.BorderBrushProperty, "DragTargetBorderBrush");
+        target.BorderThickness = new Thickness(3);
+    }
+
+    private void SetDragSourceVisual()
+    {
+        if (_dragSourceButton is null) return;
+        _dragSourceButton.SetResourceReference(Control.BackgroundProperty, "DragSourceBrush");
+        _dragSourceButton.SetResourceReference(Control.BorderBrushProperty, "DragSourceBorderBrush");
+        _dragSourceButton.BorderThickness = new Thickness(3);
+        if (_dragSourceButton.Content is Grid content)
+        {
+            _dragSourceOverlay = new Border
+            {
+                CornerRadius = new CornerRadius(4),
+                BorderThickness = new Thickness(3),
+                Opacity = 0.68,
+                IsHitTestVisible = false
+            };
+            _dragSourceOverlay.SetResourceReference(Border.BackgroundProperty, "DragSourceBrush");
+            _dragSourceOverlay.SetResourceReference(Border.BorderBrushProperty, "DragSourceBorderBrush");
+            Panel.SetZIndex(_dragSourceOverlay, 100);
+            content.Children.Add(_dragSourceOverlay);
+        }
+    }
+
+    private void ShowDragGhost()
+    {
+        if (_dragSourceButton is null) return;
+        var scale = 0.68;
+        _dragGhost = new Border
+        {
+            Width = Math.Max(46, _dragSourceButton.ActualWidth * scale),
+            Height = Math.Max(50, _dragSourceButton.ActualHeight * scale),
+            CornerRadius = new CornerRadius(6),
+            BorderThickness = new Thickness(1),
+            Background = new VisualBrush(_dragSourceButton) { Stretch = Stretch.Fill },
+            Opacity = 0.76,
+            IsHitTestVisible = false,
+            SnapsToDevicePixels = true
+        };
+        _dragGhost.SetResourceReference(Border.BorderBrushProperty, "DragSourceBorderBrush");
+        DragGhostLayer.Children.Add(_dragGhost);
+    }
+
+    private void UpdateDragGhost(Point cursorPosition)
+    {
+        if (_dragGhost is null) return;
+        const double offset = 16;
+        var left = cursorPosition.X + offset;
+        var top = cursorPosition.Y + offset;
+        if (left + _dragGhost.Width > RootGrid.ActualWidth)
+            left = cursorPosition.X - _dragGhost.Width - offset;
+        if (top + _dragGhost.Height > RootGrid.ActualHeight)
+            top = cursorPosition.Y - _dragGhost.Height - offset;
+        Canvas.SetLeft(_dragGhost, Math.Max(0, left));
+        Canvas.SetTop(_dragGhost, Math.Max(0, top));
+    }
+
+    private void ResetDragState()
+    {
+        if (_dragSourceOverlay?.Parent is Panel overlayParent)
+            overlayParent.Children.Remove(_dragSourceOverlay);
+        _dragSourceOverlay = null;
+        if (_dragSourceButton?.Tag is int sourceIndex) ApplyKeyButtonVisual(_dragSourceButton, sourceIndex);
+        if (_dragTargetButton?.Tag is int oldIndex) ApplyKeyButtonVisual(_dragTargetButton, oldIndex);
+        StopDragPointerFeedback();
+        _dragSourceKey = null;
+        _dragSourceButton = null;
+        _dragTargetButton = null;
+    }
+
+    private void StopDragPointerFeedback()
+    {
+        if (_dragGhost is not null)
+        {
+            DragGhostLayer.Children.Remove(_dragGhost);
+            _dragGhost = null;
+        }
+        _dragStart = null;
+        _dragCanStart = false;
+        _isDraggingKey = false;
+        Mouse.OverrideCursor = null;
+    }
+
+    private void ApplyKeyButtonVisual(Button button, int index)
+    {
+        if (_document is null) return;
+        var binding = _document.Layers[_selectedLayer].Bindings[index];
+        var selected = _selectedKey == index;
+        var isTransparent = _selectedLayer > 0 && binding.Raw == "&trans";
+        button.SetResourceReference(Control.BackgroundProperty,
+            selected ? "SelectedKeyBrush" : isTransparent ? "TransparentKeyBrush" : "KeyBrush");
+        button.SetResourceReference(Control.BorderBrushProperty,
+            selected ? "AccentBrush" : isTransparent ? "TransparentKeyBorderBrush" : "KeyBorderBrush");
+        button.BorderThickness = new Thickness(selected ? 2 : 1);
+    }
+
+    private void ShowDropMenu(Button target, int sourceIndex, int targetIndex)
+    {
+        if (_document is null) return;
+        var targetIsEmpty = KeymapEditor.IsEmptyBinding(_document.Layers[_selectedLayer].Bindings[targetIndex]);
+        var choices = targetIsEmpty
+            ? new[] { ("이동", KeyMoveOperation.Move), ("복사", KeyMoveOperation.Copy) }
+            : new[]
+            {
+                ("덮어쓰기 이동", KeyMoveOperation.OverwriteMove),
+                ("덮어쓰기 복사", KeyMoveOperation.OverwriteCopy),
+                ("교체", KeyMoveOperation.Swap)
+            };
+        var menu = new ContextMenu
+        {
+            PlacementTarget = target,
+            Placement = PlacementMode.Bottom,
+            StaysOpen = false
+        };
+        foreach (var (label, operation) in choices)
+        {
+            var item = new MenuItem { Header = label };
+            item.Click += (_, _) => ApplyKeyMove(sourceIndex, targetIndex, operation);
+            menu.Items.Add(item);
+        }
+        menu.Closed += (_, _) => ResetDragState();
+        menu.IsOpen = true;
+    }
+
+    private void ApplyKeyMove(int sourceIndex, int targetIndex, KeyMoveOperation operation)
+    {
+        if (_document is null) return;
+        try
+        {
+            var updated = KeymapEditor.MoveBinding(_document, _selectedLayer, sourceIndex, targetIndex, operation);
+            Commit(updated, _selectedLayer, targetIndex);
+            StatusText.Text = $"키 {sourceIndex + 1} → {targetIndex + 1}: {MoveOperationLabel(operation)}을(를) 적용했습니다.";
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            ShowBindingWarning(exception.Message);
+        }
+    }
+
+    private static string MoveOperationLabel(KeyMoveOperation operation) => operation switch
+    {
+        KeyMoveOperation.Move => "이동",
+        KeyMoveOperation.Copy => "복사",
+        KeyMoveOperation.OverwriteMove => "덮어쓰기 이동",
+        KeyMoveOperation.OverwriteCopy => "덮어쓰기 복사",
+        KeyMoveOperation.Swap => "교체",
+        _ => operation.ToString()
+    };
 
     private static Grid CreateKeycapContent(string raw, int index, double minWidth, bool isTransparent)
     {
         var presentation = GetKeycapPresentation(raw);
-        var mainBrush = new SolidColorBrush(isTransparent ? Color.FromRgb(143, 151, 163) : Color.FromRgb(31, 41, 55));
-        var detailBrush = new SolidColorBrush(isTransparent ? Color.FromRgb(181, 187, 196) : Color.FromRgb(107, 114, 128));
         var grid = new Grid { Width = minWidth - 8, Height = 62 };
 
         if (presentation.BaseCharacter is not null)
@@ -461,7 +755,6 @@ public partial class MainWindow : Window
                     FontFamily = new FontFamily("Segoe UI Symbol"),
                     FontSize = minWidth >= ThumbKeyWidth ? 15 : 13,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = detailBrush,
                     LineHeight = minWidth >= ThumbKeyWidth ? 17 : 15,
                     TextAlignment = TextAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Center
@@ -476,7 +769,6 @@ public partial class MainWindow : Window
                     ? minWidth >= ThumbKeyWidth ? 20 : 18
                     : minWidth >= ThumbKeyWidth ? 25 : 22,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = mainBrush,
                 LineHeight = hasShiftCharacter
                     ? minWidth >= ThumbKeyWidth ? 22 : 20
                     : minWidth >= ThumbKeyWidth ? 27 : 24,
@@ -500,8 +792,9 @@ public partial class MainWindow : Window
                 FontFamily = new FontFamily("Consolas"),
                 FontSize = 9,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = detailBrush
             };
+            ((TextBlock)code.Child).SetResourceReference(TextBlock.ForegroundProperty,
+                isTransparent ? "TransparentKeyDetailBrush" : "KeyDetailBrush");
             grid.Children.Add(code);
         }
         else
@@ -512,20 +805,53 @@ public partial class MainWindow : Window
                 <= 5 => minWidth >= ThumbKeyWidth ? 17 : 15,
                 _ => minWidth >= ThumbKeyWidth ? 15 : 13
             };
-            grid.Children.Add(new TextBlock
+            var centerText = new TextBlock
             {
                 Text = presentation.CenterText,
-                FontFamily = new FontFamily("Consolas"),
+                FontFamily = string.IsNullOrEmpty(presentation.ZmkCode) ? new FontFamily("Consolas") : new FontFamily("Segoe UI"),
                 FontWeight = FontWeights.SemiBold,
                 FontSize = centerFontSize,
-                Foreground = mainBrush,
-                Width = minWidth - 10,
-                TextWrapping = TextWrapping.Wrap,
+                TextWrapping = string.IsNullOrEmpty(presentation.ZmkCode) ? TextWrapping.Wrap : TextWrapping.NoWrap,
                 TextAlignment = TextAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 0, 5)
-            });
+            };
+            centerText.SetResourceReference(TextBlock.ForegroundProperty,
+                isTransparent ? "TransparentKeyTextBrush" : "KeyTextBrush");
+            if (string.IsNullOrEmpty(presentation.ZmkCode))
+            {
+                centerText.Width = minWidth - 10;
+                grid.Children.Add(centerText);
+            }
+            else
+            {
+                grid.Children.Add(new Viewbox
+                {
+                    Width = minWidth - 13,
+                    Height = 25,
+                    Stretch = Stretch.Uniform,
+                    StretchDirection = StretchDirection.DownOnly,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 8),
+                    Child = centerText
+                });
+            }
+            if (!string.IsNullOrEmpty(presentation.ZmkCode))
+            {
+                var code = new TextBlock
+                {
+                    Text = presentation.ZmkCode,
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 9,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                };
+                code.SetResourceReference(TextBlock.ForegroundProperty,
+                    isTransparent ? "TransparentKeyDetailBrush" : "KeyDetailBrush");
+                grid.Children.Add(code);
+            }
         }
 
         grid.Children.Add(new TextBlock
@@ -533,11 +859,25 @@ public partial class MainWindow : Window
             Text = (index + 1).ToString(),
             FontFamily = new FontFamily("Consolas"),
             FontSize = 9,
-            Foreground = detailBrush,
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Bottom
         });
+        ((TextBlock)grid.Children[^1]).SetResourceReference(TextBlock.ForegroundProperty,
+            isTransparent ? "TransparentKeyDetailBrush" : "KeyDetailBrush");
+
+        foreach (var text in FindVisualChildren<TextBlock>(grid).Where(item => item.ReadLocalValue(TextBlock.ForegroundProperty) == DependencyProperty.UnsetValue))
+            text.SetResourceReference(TextBlock.ForegroundProperty, isTransparent ? "TransparentKeyTextBrush" : "KeyTextBrush");
         return grid;
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is T match) yield return match;
+            foreach (var descendant in FindVisualChildren<T>(child)) yield return descendant;
+        }
     }
 
     private static KeycapPresentation GetKeycapPresentation(string raw)
@@ -549,6 +889,8 @@ public partial class MainWindow : Window
                 item.Aliases.Any(alias => alias.Equals(code, StringComparison.OrdinalIgnoreCase)));
             if (option?.BaseCharacter is not null)
                 return new KeycapPresentation(string.Empty, option.BaseCharacter, option.ShiftCharacter, code);
+            if (option?.Code is "LANG3" or "LANG4" or "LANG5")
+                return new KeycapPresentation(option.KeycapLabel, null, null, code);
         }
         return new KeycapPresentation(FriendlyBinding(raw), null, null, string.Empty);
     }
@@ -628,7 +970,7 @@ public partial class MainWindow : Window
         var layer = _document!.Layers[_selectedLayer];
         LayerTitleText.Text = $"{layer.DisplayName} · {KeymapDocument.ModuEditableKeyCount}키";
         DirtyText.Text = IsDirty ? "● 저장되지 않음" : "저장됨";
-        DirtyText.Foreground = new SolidColorBrush(IsDirty ? Color.FromRgb(154, 101, 0) : Color.FromRgb(16, 124, 65));
+        DirtyText.SetResourceReference(TextBlock.ForegroundProperty, IsDirty ? "WarningBrush" : "SuccessBrush");
         Title = (IsDirty ? "* " : string.Empty) + "Unofficial MODU Keymap Studio — " + Path.GetFileName(_file.Path);
         UndoButton.IsEnabled = _history?.CanUndo == true;
         RedoButton.IsEnabled = _history?.CanRedo == true;
@@ -672,7 +1014,7 @@ public partial class MainWindow : Window
 
     private void SetDocumentControls(bool enabled)
     {
-        SaveButton.IsEnabled = SaveAsButton.IsEnabled = AddLayerButton.IsEnabled = BuildButton.IsEnabled = enabled;
+        SaveButton.IsEnabled = SaveAsButton.IsEnabled = AddLayerButton.IsEnabled = RenameLayerButton.IsEnabled = BuildButton.IsEnabled = enabled;
         DeleteLayerButton.IsEnabled = false;
         UndoButton.IsEnabled = RedoButton.IsEnabled = false;
     }
@@ -682,6 +1024,10 @@ public partial class MainWindow : Window
 
     private static string FriendlyBinding(string raw)
     {
+        if (raw == "&bootloader") return ZmkBehaviorCatalog.Bootloader.Label;
+        if (raw == ZmkBehaviorCatalog.HeldBootloaderBinding) return ZmkBehaviorCatalog.HeldBootloader.Label;
+        if (raw == ZmkBehaviorCatalog.HeldSystemResetBinding) return ZmkBehaviorCatalog.HeldSystemReset.Label;
+        if (raw == "&sys_reset") return "시스템 재시작";
         if (raw.StartsWith("&kp ", StringComparison.Ordinal))
         {
             var code = raw[4..].Trim();
@@ -704,6 +1050,10 @@ public partial class MainWindow : Window
 
     private static string DescribeBinding(string raw)
     {
+        if (raw == "&bootloader" || raw == ZmkBehaviorCatalog.HeldBootloaderBinding)
+            return FriendlyBinding(raw) + " · " + ZmkBehaviorCatalog.BootloaderCaution;
+        if (raw == ZmkBehaviorCatalog.HeldSystemResetBinding)
+            return FriendlyBinding(raw) + " · " + ZmkBehaviorCatalog.ResetSourceCaution;
         if (!raw.StartsWith("&kp ", StringComparison.Ordinal)) return FriendlyBinding(raw);
         var code = raw[4..].Trim();
         var option = ZmkKeycodeCatalog.All.FirstOrDefault(item =>
@@ -721,6 +1071,8 @@ public partial class MainWindow : Window
         options.AddRange(Enumerable.Range(0, 5).Select(number => new KeyOption("Bluetooth", $"Bluetooth 프로필 {number}", $"&bt BT_SEL {number}", "Bluetooth Profile Select", "bluetooth profile select bt sel")));
         options.AddRange(new[] { ("왼쪽 클릭", "LCLK"), ("오른쪽 클릭", "RCLK"), ("가운데 클릭", "MCLK") }
             .Select(item => new KeyOption("마우스", item.Item1, $"&mkp {item.Item2}", "Mouse Button", $"mouse click {item.Item2}")));
+        options.AddRange(ZmkBehaviorCatalog.All.Select(item =>
+            new KeyOption(item.Category, item.Label, item.Binding, item.Detail, item.SearchTerms)));
         return options;
     }
 
@@ -736,7 +1088,17 @@ public partial class MainWindow : Window
                 .Contains(trimmed, StringComparison.CurrentCultureIgnoreCase);
         }
     }
-    private sealed record BehaviorChoice(string Label, string Code);
-    private sealed record LayerChoice(int Index, string Label);
+    private sealed record BehaviorChoice(string Label, string Code)
+    {
+        public override string ToString() => Label;
+    }
+    private sealed record LayerChoice(int Index, string Label)
+    {
+        public override string ToString() => Label;
+    }
+    private sealed record ThemeChoice(string Label, ThemePreference Preference)
+    {
+        public override string ToString() => Label;
+    }
     private sealed record KeycapPresentation(string CenterText, string? BaseCharacter, string? ShiftCharacter, string ZmkCode);
 }

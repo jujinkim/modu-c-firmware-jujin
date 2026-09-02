@@ -7,7 +7,7 @@ MODU-C의 ZMK `modu.keymap`을 시각적으로 편집하는 Windows 10/11 x64용
 ## 주요 기능
 
 - 실행 위치의 상위 폴더를 탐색해 `modu-module/boards/shields/modu/modu.keymap` 자동 열기
-- 두 레이어와 MODU 61키 물리 배열 표시(엄지 3/3, 추가모듈 키는 오른쪽 N 왼쪽)
+- 실제 레이어 수와 무관하게 MODU 61키 물리 배열 표시(엄지 3/3, 추가모듈 키는 오른쪽 N 왼쪽)
 - 실제 스위치가 없는 6개 예약 슬롯은 숨기고 편집을 차단
 - 투명 바인딩은 옅게 표시하고 기본 레이어의 실제 키 값을 대신 표시
 - ZMK 공식 키코드 문서의 368개 항목 전체 제공: 문자, 숫자·기호, 제어·탐색, 기능키, 수정키, 국제·언어, 넘패드, 편집, 미디어, 앱·브라우저, 입력 보조, 시스템·전원
@@ -21,10 +21,17 @@ MODU-C의 ZMK `modu.keymap`을 시각적으로 편집하는 Windows 10/11 x64용
 - `&trans`, `&none`, `&mo`, `&to`, `&tog`, `&sl`, `&lt` 전용 입력과 고급 원문 입력
 - 실행 취소/다시 실행, 명시적 저장, 다른 이름으로 저장, 미저장 종료 확인
 - 투명 레이어 추가 또는 현재 레이어 복제
+- 표시 이름과 Devicetree 노드 이름 변경(기본 레이어의 `default_layer` 노드명은 보호)
+- 현재 레이어에서 키를 드래그해 빈 자리로 이동·복사하거나 할당된 키에 덮어쓰기·교체; 드래그 중 소스 키 강조와 커서 옆 반투명 키 고스트 표시
+- Light, Dark, Windows 시스템 테마 즉시 전환 및 preference 저장
 - 기본 레이어 삭제 방지, 참조 중/심볼형 레이어 삭제 차단, 상위 숫자 참조 자동 보정
 - Python, west, west 워크스페이스, `west build`, CMake/Ninja, ARM Zephyr SDK 사전 점검과 항목별 설치 안내
 - 기존 저장소 `build.ps1`을 통한 좌/우 펌웨어 빌드, 로그 분리, 취소 및 결과 폴더 열기
 - 앱 시작 시 먼저 표시되고 우측 하단에서 다시 열 수 있는 About 창에서 프로그램 버전, 비공식 도구 및 사용자 책임 안내, 프로젝트·원본 펌웨어·사용자 매뉴얼 링크 제공
+
+`LANG3`, `LANG4`, `LANG5`는 키캡 중앙에 각각 **カタカナ**, **ひらがな**, **半角/全角**으로 표시되고 ZMK 코드는 보조 라벨로 남습니다.
+
+시스템·전원 목록에는 즉시 실행하는 `&bootloader`와, 짧게 누르면 아무 동작도 하지 않고 500ms 이상 눌렀을 때 실행하는 부트로더·시스템 리셋 항목이 있습니다. 500ms 항목을 처음 적용하면 에디터가 같은 `modu.keymap` 안에 `tap-preferred` 사용자 정의 hold-tap 동작을 한 번만 추가합니다. ZMK의 `&bootloader`와 `&sys_reset`은 누른 키가 위치한 하프에만 적용됩니다. 특히 현재 MODU 보드에는 공식 boot-mode retention 설정이 없어 `&bootloader`가 부트로더로 들어가지 못하고 일반 재시작만 할 수 있습니다. 자세한 동작은 [ZMK Hold-Tap](https://zmk.dev/docs/keymaps/behaviors/hold-tap), [ZMK Reset Behaviors](https://zmk.dev/docs/keymaps/behaviors/reset), [ZMK Bootloader Integration](https://zmk.dev/docs/hardware-integration/bootloader)을 참고하세요.
 
 키맵 파서는 바인딩의 원문 위치만 패치합니다. 헤더, 주석, 공백, 줄바꿈과 키맵 밖의 DTS 내용은 그대로 보존하며, 무수정 저장은 원본 바이트를 그대로 기록합니다. 저장 전 모든 레이어가 정확히 67개 바인딩인지 검증합니다.
 
@@ -42,7 +49,7 @@ dotnet run --project .\keymap-editor\src\ModuKeymapStudio\ModuKeymapStudio.cspro
 .\keymap-editor\test.ps1
 ```
 
-실제 키맵 파싱, 바이트 단위 round-trip, LF/CRLF와 주석 보존, 단일 키 패치, 레이어 추가/복제/검증/삭제/참조 보정, undo/redo, 공식 ZMK 키코드 카탈로그 및 영문명·기호·별칭 검색, 가짜 빌드 프로세스의 성공/실패/취소를 검사합니다.
+실제 키맵 파싱, 바이트 단위 round-trip, LF/CRLF와 주석 보존, 단일 키 패치, 레이어 추가/복제/이름 변경/검증/삭제/참조 보정, 다섯 가지 키 드래그 작업, 500ms 안전 홀드 동작, undo/redo, 공식 ZMK 키코드 카탈로그 및 영문명·기호·별칭 검색, 테마 설정 호환성, 가짜 빌드 프로세스의 성공/실패/취소를 검사합니다.
 
 ## 포터블 EXE 게시
 

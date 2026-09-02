@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Unofficial MODU Keymap Studio · 펌웨어 빌드"
         Width="1120" Height="820" MinWidth="900" MinHeight="650"
-        Background="{StaticResource WindowBrush}" Foreground="{StaticResource TextBrush}"
+        Background="{DynamicResource WindowBrush}" Foreground="{DynamicResource TextBrush}"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         Loaded="Window_Loaded" Closing="Window_Closing">
     <Grid Margin="20">
@@ -17,7 +17,7 @@
         <StackPanel>
             <TextBlock Text="펌웨어 빌드" FontSize="24" FontWeight="SemiBold" />
             <TextBlock Text="환경을 먼저 진단한 뒤 기존 build.ps1로 왼쪽과 오른쪽 UF2를 만듭니다."
-                       Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" />
+                       Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" />
         </StackPanel>
 
         <Grid Grid.Row="1" Margin="0,18,0,14">
@@ -32,7 +32,7 @@
             <Button Grid.Column="2" Content="폴더 선택" Margin="8,0,0,0" Click="Browse_Click" />
         </Grid>
 
-        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+        <Border Grid.Row="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="10" Padding="8">
             <TabControl x:Name="BuildTabs">
                 <TabItem x:Name="EnvironmentTab" Header="환경 확인">
@@ -51,10 +51,10 @@
                                 <TextBlock Text="이 PC에서 실제 빌드 도구를 실행해 준비 상태를 확인합니다."
                                            FontSize="15" FontWeight="SemiBold" />
                                 <TextBlock Text="검사는 파일을 설치하거나 수정하지 않습니다."
-                                           Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0" />
+                                           Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,0" />
                             </StackPanel>
                             <TextBlock Grid.Column="1" x:Name="EnvironmentSummaryText" Text="확인 전"
-                                       Foreground="{StaticResource MutedBrush}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource MutedBrush}" FontWeight="SemiBold"
                                        VerticalAlignment="Center" Margin="16,0,4,0" />
                         </Grid>
 
@@ -62,7 +62,7 @@
                             <ItemsControl x:Name="EnvironmentChecksList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="{StaticResource PanelAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                        <Border Background="{DynamicResource PanelAltBrush}" BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="1" CornerRadius="7" Padding="10,8" Margin="3,0,3,7">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
@@ -76,7 +76,7 @@
                                                            Margin="6,0,12,0" VerticalAlignment="Top" />
                                                 <StackPanel Grid.Column="2">
                                                     <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="{Binding Guidance}" Foreground="#8A5A00" TextWrapping="Wrap"
+                                                    <TextBlock Text="{Binding Guidance}" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap"
                                                                Margin="0,3,0,0" />
                                                 </StackPanel>
                                             </Grid>
@@ -86,10 +86,10 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <Border Grid.Row="2" Background="#EFF7FF" BorderBrush="#BDD7EE" BorderThickness="1"
+                        <Border Grid.Row="2" Background="{DynamicResource InfoPanelBrush}" BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="1"
                                 CornerRadius="7" Padding="10" Margin="3,5,3,2">
                             <TextBlock Text="사전 점검은 도구와 워크스페이스가 실행 가능한지 확인합니다. 소스·설정 오류까지 포함한 최종 판정은 실제 west build 결과입니다."
-                                       Foreground="#285275" TextWrapping="Wrap" />
+                                       Foreground="{DynamicResource InfoTextBrush}" TextWrapping="Wrap" />
                         </Border>
                     </Grid>
                 </TabItem>
@@ -98,10 +98,10 @@
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="14">
                             <TextBlock Text="west와 Zephyr SDK" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock Margin="0,6,0,14" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}">
-                                <Run Text="west" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                            <TextBlock Margin="0,6,0,14" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}">
+                                <Run Text="west" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
                                 <Run Text="는 ZMK·Zephyr 소스와 모듈을 한 워크스페이스로 관리하고 build 명령을 연결하는 Python 도구입니다. " />
-                                <Run Text="Zephyr SDK" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                                <Run Text="Zephyr SDK" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
                                 <Run Text="는 nRF52840용 코드를 만드는 ARM 컴파일러·어셈블러·링커와 호스트 도구를 제공합니다." />
                             </TextBlock>
 
@@ -150,7 +150,7 @@
             </Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock x:Name="BuildStatusText" Text="빌드 환경을 확인하세요."
-                           Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" />
+                           Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
                 <ProgressBar x:Name="BuildProgress" Height="4" Margin="0,8,18,0"
                              IsIndeterminate="True" Visibility="Collapsed" />
             </StackPanel>

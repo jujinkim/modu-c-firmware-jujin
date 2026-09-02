@@ -43,9 +43,13 @@ public sealed record ZmkKeycodeOption(
         }
     }
 
-    public string KeycapLabel => string.IsNullOrWhiteSpace(Symbols)
-        ? Code.Replace('_', ' ')
-        : $"{Code} {Symbols}";
+    public string KeycapLabel => Code switch
+    {
+        "LANG3" => "カタカナ",
+        "LANG4" => "ひらがな",
+        "LANG5" => "半角/全角",
+        _ => string.IsNullOrWhiteSpace(Symbols) ? Code.Replace('_', ' ') : $"{Code} {Symbols}"
+    };
 
     public string? BaseCharacter => SplitSymbols().FirstOrDefault();
 
