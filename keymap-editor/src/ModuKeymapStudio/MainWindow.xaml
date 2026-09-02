@@ -6,12 +6,22 @@
         WindowStartupLocation="CenterScreen" Loaded="Window_Loaded" Closing="Window_Closing">
     <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="74" />
+            <RowDefinition Height="82" />
             <RowDefinition Height="*" />
             <RowDefinition Height="34" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
+        <Border Grid.Row="0" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,7">
+            <Border.Resources>
+                <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                    <Setter Property="Padding" Value="10,5" />
+                    <Setter Property="Margin" Value="2,0" />
+                </Style>
+                <Style x:Key="ToolbarAccentButton" TargetType="Button" BasedOn="{StaticResource AccentButton}">
+                    <Setter Property="Padding" Value="11,5" />
+                    <Setter Property="Margin" Value="3,0" />
+                </Style>
+            </Border.Resources>
             <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="44" Height="44" CornerRadius="11" Background="{DynamicResource AccentBrush}">
@@ -23,15 +33,39 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Content="열기" Margin="4,0" Click="Open_Click" />
-                    <Button Content="저장" Margin="4,0" Click="Save_Click" x:Name="SaveButton" />
-                    <Button Content="다른 이름" Margin="4,0" Click="SaveAs_Click" x:Name="SaveAsButton" />
-                    <Button Content="↶ 실행 취소" Margin="12,0,4,0" Click="Undo_Click" x:Name="UndoButton" />
-                    <Button Content="↷ 다시 실행" Margin="4,0" Click="Redo_Click" x:Name="RedoButton" />
-                    <Button Content="＋ 레이어" Margin="12,0,4,0" Click="AddLayer_Click" x:Name="AddLayerButton" />
-                    <Button Content="이름 변경" Margin="4,0" Click="RenameLayer_Click" x:Name="RenameLayerButton" />
-                    <Button Content="레이어 삭제" Margin="4,0" Click="DeleteLayer_Click" x:Name="DeleteLayerButton" />
-                    <Button Content="펌웨어 빌드" Style="{StaticResource AccentButton}" Margin="12,0,0,0" Click="Build_Click" x:Name="BuildButton" />
+                    <Border Background="{DynamicResource PanelAltBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="7" Padding="5,3" Margin="3,0">
+                        <StackPanel>
+                            <TextBlock Text="파일" FontSize="10" Foreground="{DynamicResource MutedBrush}" Margin="4,0,0,2" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="열기" Style="{StaticResource ToolbarButton}" Click="Open_Click" />
+                                <Button Content="저장" Style="{StaticResource ToolbarButton}" Click="Save_Click" x:Name="SaveButton" />
+                                <Button Content="다른 이름" Style="{StaticResource ToolbarButton}" Click="SaveAs_Click" x:Name="SaveAsButton" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource PanelAltBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="7" Padding="5,3" Margin="3,0">
+                        <StackPanel>
+                            <TextBlock Text="작업" FontSize="10" Foreground="{DynamicResource MutedBrush}" Margin="4,0,0,2" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="↶ 실행 취소" Style="{StaticResource ToolbarButton}" Click="Undo_Click" x:Name="UndoButton" />
+                                <Button Content="↷ 다시 실행" Style="{StaticResource ToolbarButton}" Click="Redo_Click" x:Name="RedoButton" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource PanelAltBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="7" Padding="5,3" Margin="3,0">
+                        <StackPanel>
+                            <TextBlock Text="레이어" FontSize="10" Foreground="{DynamicResource MutedBrush}" Margin="4,0,0,2" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="＋ 추가" Style="{StaticResource ToolbarButton}" Click="AddLayer_Click" x:Name="AddLayerButton" />
+                                <Button Content="이름 변경" Style="{StaticResource ToolbarButton}" Click="RenameLayer_Click" x:Name="RenameLayerButton" />
+                                <Button Content="삭제" Style="{StaticResource ToolbarButton}" Click="DeleteLayer_Click" x:Name="DeleteLayerButton" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="전체보기" Style="{StaticResource ToolbarButton}" Margin="10,0,2,0"
+                            Click="AllLayers_Click" x:Name="AllLayersButton" />
+                    <Button Content="펌웨어 빌드" Style="{StaticResource ToolbarAccentButton}"
+                            Click="Build_Click" x:Name="BuildButton" />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -109,6 +143,29 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                         <Button Content="선택한 키 적용" Margin="0,7,0,16" Click="ApplyPreset_Click" />
+
+                        <Expander Header="부트로더·리셋 안내" IsExpanded="False" Margin="0,0,0,14">
+                            <Border Background="{DynamicResource WarningPanelBrush}"
+                                    BorderBrush="{DynamicResource WarningBorderBrush}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,7,0,0">
+                                <StackPanel>
+                                    <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" FontSize="11">
+                                        <Run FontWeight="SemiBold" Text="설정: " />
+                                        <Run Text="키를 선택한 뒤 시스템·전원 항목을 골라 ‘선택한 키 적용’을 누르거나 항목을 더블클릭하세요." />
+                                    </TextBlock>
+                                    <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,6,0,0">
+                                        <Run FontWeight="SemiBold" Text="즉시 부트로더: " />
+                                        <Run Text="키를 누르는 즉시 &amp;bootloader를 실행합니다." />
+                                    </TextBlock>
+                                    <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0">
+                                        <Run FontWeight="SemiBold" Text="500ms 길게 누르기: " />
+                                        <Run Text="0.5초 이상 계속 눌러야 부트로더 또는 시스템 재시작을 실행하며, 그 전에 떼면 아무 동작도 하지 않습니다." />
+                                    </TextBlock>
+                                    <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,6,0,0"
+                                               Text="분할 키보드에서는 이 키가 위치한 하프에만 적용됩니다. 현재 MODU 보드는 공식 boot-mode retention 설정이 없어 부트로더 진입 대신 일반 재시작만 될 수 있습니다." />
+                                </StackPanel>
+                            </Border>
+                        </Expander>
 
                         <Separator Background="{DynamicResource BorderBrush}" Margin="0,0,0,15" />
                         <TextBlock Text="동작별 입력" FontWeight="SemiBold" />

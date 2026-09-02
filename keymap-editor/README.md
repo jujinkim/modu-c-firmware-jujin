@@ -20,6 +20,8 @@ MODU-C의 ZMK `modu.keymap`을 시각적으로 편집하는 Windows 10/11 x64용
 - Bluetooth, 마우스, 레이어 동작 분류 및 검색
 - `&trans`, `&none`, `&mo`, `&to`, `&tog`, `&sl`, `&lt` 전용 입력과 고급 원문 입력
 - 실행 취소/다시 실행, 명시적 저장, 다른 이름으로 저장, 미저장 종료 확인
+- 상단 도구 모음을 파일·작업·레이어 그룹으로 구분하고, 전체보기와 펌웨어 빌드는 독립 실행 버튼으로 배치
+- 전체보기 창에서 모든 레이어를 세로로 스크롤해 미리보고 한 장의 PNG로 저장하거나 클립보드에 복사
 - 투명 레이어 추가 또는 현재 레이어 복제
 - 표시 이름과 Devicetree 노드 이름 변경(기본 레이어의 `default_layer` 노드명은 보호)
 - 현재 레이어에서 키를 드래그해 빈 자리로 이동·복사하거나 할당된 키에 덮어쓰기·교체; 드래그 중 소스 키 강조와 커서 옆 반투명 키 고스트 표시
@@ -31,7 +33,7 @@ MODU-C의 ZMK `modu.keymap`을 시각적으로 편집하는 Windows 10/11 x64용
 
 `LANG3`, `LANG4`, `LANG5`는 키캡 중앙에 각각 **カタカナ**, **ひらがな**, **半角/全角**으로 표시되고 ZMK 코드는 보조 라벨로 남습니다.
 
-시스템·전원 목록에는 즉시 실행하는 `&bootloader`와, 짧게 누르면 아무 동작도 하지 않고 500ms 이상 눌렀을 때 실행하는 부트로더·시스템 리셋 항목이 있습니다. 500ms 항목을 처음 적용하면 에디터가 같은 `modu.keymap` 안에 `tap-preferred` 사용자 정의 hold-tap 동작을 한 번만 추가합니다. ZMK의 `&bootloader`와 `&sys_reset`은 누른 키가 위치한 하프에만 적용됩니다. 특히 현재 MODU 보드에는 공식 boot-mode retention 설정이 없어 `&bootloader`가 부트로더로 들어가지 못하고 일반 재시작만 할 수 있습니다. 자세한 동작은 [ZMK Hold-Tap](https://zmk.dev/docs/keymaps/behaviors/hold-tap), [ZMK Reset Behaviors](https://zmk.dev/docs/keymaps/behaviors/reset), [ZMK Bootloader Integration](https://zmk.dev/docs/hardware-integration/bootloader)을 참고하세요.
+시스템·전원 목록에는 즉시 실행하는 `&bootloader`와, 짧게 누르면 아무 동작도 하지 않고 500ms 이상 눌렀을 때 실행하는 부트로더·시스템 리셋 항목이 있습니다. 앱 오른쪽 패널의 접힌 **부트로더·리셋 안내**를 열면 설정 순서와 동작 차이를 확인할 수 있습니다. 500ms 항목을 처음 적용하면 에디터가 같은 `modu.keymap` 안에 `tap-preferred` 사용자 정의 hold-tap 동작을 한 번만 추가합니다. ZMK의 `&bootloader`와 `&sys_reset`은 누른 키가 위치한 하프에만 적용됩니다. 특히 현재 MODU 보드에는 공식 boot-mode retention 설정이 없어 `&bootloader`가 부트로더로 들어가지 못하고 일반 재시작만 할 수 있습니다. 자세한 동작은 [ZMK Hold-Tap](https://zmk.dev/docs/keymaps/behaviors/hold-tap), [ZMK Reset Behaviors](https://zmk.dev/docs/keymaps/behaviors/reset), [ZMK Bootloader Integration](https://zmk.dev/docs/hardware-integration/bootloader)을 참고하세요.
 
 키맵 파서는 바인딩의 원문 위치만 패치합니다. 헤더, 주석, 공백, 줄바꿈과 키맵 밖의 DTS 내용은 그대로 보존하며, 무수정 저장은 원본 바이트를 그대로 기록합니다. 저장 전 모든 레이어가 정확히 67개 바인딩인지 검증합니다.
 

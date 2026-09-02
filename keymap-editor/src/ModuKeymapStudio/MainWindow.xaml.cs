@@ -146,6 +146,12 @@ public partial class MainWindow : Window
         new KeySelectionHelpWindow { Owner = this }.ShowDialog();
     }
 
+    private void AllLayers_Click(object sender, RoutedEventArgs e)
+    {
+        if (_document is null) return;
+        new AllLayersPreviewWindow(_document, CreateLayerPreview) { Owner = this }.Show();
+    }
+
     private bool SaveDocument(bool saveAs)
     {
         if (_document is null || _file is null) return false;
@@ -408,16 +414,30 @@ public partial class MainWindow : Window
     {
         KeyboardPanel.Children.Clear();
         if (_document is null) return;
-        var bindings = _document.Layers[_selectedLayer].Bindings;
+        PopulateKeyboard(KeyboardPanel, _selectedLayer, interactive: true);
+    }
+
+    internal FrameworkElement CreateLayerPreview(int layerIndex)
+    {
+        var panel = new StackPanel { MinWidth = 1120 };
+        PopulateKeyboard(panel, layerIndex, interactive: false);
+        return panel;
+    }
+
+    private void PopulateKeyboard(Panel destination, int layerIndex, bool interactive)
+    {
+        if (_document is null || layerIndex < 0 || layerIndex >= _document.Layers.Count) return;
+        var bindings = _document.Layers[layerIndex].Bindings;
         if (bindings.Count != KeymapDocument.ModuBindingCount)
         {
-            KeyboardPanel.Children.Add(new TextBlock
+            var warning = new TextBlock
             {
                 Text = $"이 레이어에는 {bindings.Count}개 바인딩이 있습니다. MODU 키맵 형식에는 {KeymapDocument.ModuBindingCount}개가 필요합니다.",
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(20)
-            });
-            ((TextBlock)KeyboardPanel.Children[^1]).SetResourceReference(TextBlock.ForegroundProperty, "WarningBrush");
+            };
+            warning.SetResourceReference(TextBlock.ForegroundProperty, "WarningBrush");
+            destination.Children.Add(warning);
             return;
         }
 
@@ -430,7 +450,7 @@ public partial class MainWindow : Window
             {
                 var index = row * 12 + column;
                 if (!KeymapDocument.IsEditableKeyIndex(index)) continue;
-                var button = CreateKeyButton(bindings[index], index, StandardKeyWidth);
+                var button = CreateKeyButton(bindings[index], index, StandardKeyWidth, layerIndex, interactive);
                 Grid.SetColumn(button, column < 6 ? column : column + 1);
                 grid.Children.Add(button);
             }
@@ -439,30 +459,30 @@ public partial class MainWindow : Window
             // It sits immediately to the left of N instead of in the thumb row.
             if (row == 3)
             {
-                var moduleButton = CreateKeyButton(bindings[66], 66, StandardKeyWidth, isAdditionalModule: true);
+                var moduleButton = CreateKeyButton(bindings[66], 66, StandardKeyWidth, layerIndex, interactive, isAdditionalModule: true);
                 moduleButton.Width = StandardKeyWidth;
                 moduleButton.HorizontalAlignment = HorizontalAlignment.Right;
                 Grid.SetColumn(moduleButton, 6);
                 grid.Children.Add(moduleButton);
             }
-            KeyboardPanel.Children.Add(grid);
+            destination.Children.Add(grid);
         }
 
         var thumbs = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 18, 0, 0) };
         var leftThumbs = new StackPanel { Orientation = Orientation.Horizontal };
         var rightThumbs = new StackPanel { Orientation = Orientation.Horizontal };
-        for (var index = 60; index < 63; index++) leftThumbs.Children.Add(CreateKeyButton(bindings[index], index, ThumbKeyWidth));
-        for (var index = 63; index < 66; index++) rightThumbs.Children.Add(CreateKeyButton(bindings[index], index, ThumbKeyWidth));
+        for (var index = 60; index < 63; index++) leftThumbs.Children.Add(CreateKeyButton(bindings[index], index, ThumbKeyWidth, layerIndex, interactive));
+        for (var index = 63; index < 66; index++) rightThumbs.Children.Add(CreateKeyButton(bindings[index], index, ThumbKeyWidth, layerIndex, interactive));
         thumbs.Children.Add(leftThumbs);
         thumbs.Children.Add(new Border { Width = MiddleGapWidth });
         thumbs.Children.Add(rightThumbs);
-        KeyboardPanel.Children.Add(thumbs);
+        destination.Children.Add(thumbs);
     }
 
-    private Button CreateKeyButton(Binding binding, int index, double minWidth, bool isAdditionalModule = false)
+    private Button CreateKeyButton(Binding binding, int index, double minWidth, int layerIndex, bool interactive, bool isAdditionalModule = false)
     {
-        var selected = _selectedKey == index;
-        var isTransparent = _selectedLayer > 0 && binding.Raw == "&trans";
+        var selected = interactive && _selectedKey == index;
+        var isTransparent = layerIndex > 0 && binding.Raw == "&trans";
         var visibleBinding = isTransparent ? _document!.Layers[0].Bindings[index].Raw : binding.Raw;
         var bindingDescription = DescribeBinding(visibleBinding);
         var tooltipText = isTransparent
@@ -485,14 +505,19 @@ public partial class MainWindow : Window
                 FontFamily = new FontFamily("Consolas"),
                 FontSize = 12
             },
-            BorderThickness = new Thickness(selected ? 2 : 1)
+            BorderThickness = new Thickness(selected ? 2 : 1),
+            Focusable = interactive,
+            IsHitTestVisible = interactive
         };
-        ApplyKeyButtonVisual(button, index);
-        ToolTipService.SetInitialShowDelay(button, 250);
-        ToolTipService.SetShowDuration(button, 30000);
-        button.PreviewMouseLeftButtonDown += KeyButton_MouseLeftButtonDown;
-        button.PreviewMouseMove += KeyButton_MouseMove;
-        button.PreviewMouseLeftButtonUp += KeyButton_MouseLeftButtonUp;
+        ApplyKeyButtonVisual(button, index, layerIndex, allowSelection: interactive);
+        if (interactive)
+        {
+            ToolTipService.SetInitialShowDelay(button, 250);
+            ToolTipService.SetShowDuration(button, 30000);
+            button.PreviewMouseLeftButtonDown += KeyButton_MouseLeftButtonDown;
+            button.PreviewMouseMove += KeyButton_MouseMove;
+            button.PreviewMouseLeftButtonUp += KeyButton_MouseLeftButtonUp;
+        }
         return button;
     }
 
@@ -668,12 +693,13 @@ public partial class MainWindow : Window
         Mouse.OverrideCursor = null;
     }
 
-    private void ApplyKeyButtonVisual(Button button, int index)
+    private void ApplyKeyButtonVisual(Button button, int index, int? layerIndex = null, bool allowSelection = true)
     {
         if (_document is null) return;
-        var binding = _document.Layers[_selectedLayer].Bindings[index];
-        var selected = _selectedKey == index;
-        var isTransparent = _selectedLayer > 0 && binding.Raw == "&trans";
+        var resolvedLayerIndex = layerIndex ?? _selectedLayer;
+        var binding = _document.Layers[resolvedLayerIndex].Bindings[index];
+        var selected = allowSelection && resolvedLayerIndex == _selectedLayer && _selectedKey == index;
+        var isTransparent = resolvedLayerIndex > 0 && binding.Raw == "&trans";
         button.SetResourceReference(Control.BackgroundProperty,
             selected ? "SelectedKeyBrush" : isTransparent ? "TransparentKeyBrush" : "KeyBrush");
         button.SetResourceReference(Control.BorderBrushProperty,
@@ -1014,7 +1040,8 @@ public partial class MainWindow : Window
 
     private void SetDocumentControls(bool enabled)
     {
-        SaveButton.IsEnabled = SaveAsButton.IsEnabled = AddLayerButton.IsEnabled = RenameLayerButton.IsEnabled = BuildButton.IsEnabled = enabled;
+        SaveButton.IsEnabled = SaveAsButton.IsEnabled = AddLayerButton.IsEnabled = RenameLayerButton.IsEnabled =
+            AllLayersButton.IsEnabled = BuildButton.IsEnabled = enabled;
         DeleteLayerButton.IsEnabled = false;
         UndoButton.IsEnabled = RedoButton.IsEnabled = false;
     }
