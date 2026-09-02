@@ -449,6 +449,14 @@ static async Task BuildEnvironmentPreflight()
         var westFailure = missingWest.Items.Single(item => item.Name == "west");
         Equal(EnvironmentCheckStatus.Failed, westFailure.Status, "west 실패 상태");
         True(!string.IsNullOrWhiteSpace(westFailure.Guidance), "west 설치 안내 누락");
+
+        var missingPythonProbe = new FakeCommandProbe((_, _, _) =>
+            new CommandProbeResult(1, string.Empty, "command not found"));
+        var missingPython = await new BuildEnvironmentChecker(missingPythonProbe).CheckAsync(root, zmkApp);
+        var pythonFailure = missingPython.Items.Single(item => item.Name == "Python");
+        Equal(EnvironmentCheckStatus.Failed, pythonFailure.Status, "Python 실패 상태");
+        True(pythonFailure.Guidance?.Contains("Python.Python.3.12", StringComparison.Ordinal) == true,
+            "Python 3.12 winget 설치 안내 누락");
     }
     finally
     {

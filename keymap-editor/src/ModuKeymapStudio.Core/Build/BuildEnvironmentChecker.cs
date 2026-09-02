@@ -185,7 +185,7 @@ public sealed class BuildEnvironmentChecker
         if (workingPython.Count == 0)
         {
             items.Add(Failed("Python", "실행 가능한 Python을 찾지 못했습니다.",
-                "Python 3.12를 설치하고 ZMK 루트에 .venv를 만드세요."));
+                "Windows에서는 winget install --exact --id Python.Python.3.12 --source winget을 실행한 뒤 새 PowerShell에서 py -3.12로 ZMK .venv를 만드세요. 다른 OS에서는 해당 패키지 관리자를 사용하세요."));
             AddSkipped(items, RemainingCheckNames[1..], "Python이 준비되어야 확인할 수 있습니다.");
             return new BuildEnvironmentReport(items);
         }

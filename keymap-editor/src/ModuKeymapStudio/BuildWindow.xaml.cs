@@ -33,6 +33,7 @@ public partial class BuildWindow : Window
         InitializeComponent();
         _repositoryRoot = repositoryRoot;
         _outputsPath = Path.Combine(repositoryRoot, "outputs");
+        PrerequisiteCommandsBox.Text = PrerequisiteCommands;
         SetupCommandsBox.Text = InstallationCommands;
         EnvironmentChecksList.ItemsSource = new[]
         {
@@ -337,6 +338,22 @@ public partial class BuildWindow : Window
         public static EnvironmentCheckDisplay Failure(string name, string detail, string guidance) =>
             new("실패", BrushFor(EnvironmentCheckStatus.Failed), name, detail, guidance);
     }
+
+    private const string PrerequisiteCommands = """
+        winget install --exact --id Python.Python.3.12 --source winget
+        winget install --exact --id 7zip.7zip --source winget
+
+        # 설치가 끝나면 새 PowerShell에서 확인
+        py -3.12 --version
+
+        # 새 터미널을 열 수 없고 7z.exe만 안 잡힐 때: 현재 세션에만 적용
+        $sevenZipBin = Join-Path $env:ProgramFiles '7-Zip'
+        if (-not (Test-Path (Join-Path $sevenZipBin '7z.exe'))) {
+            throw 'C:\Program Files\7-Zip\7z.exe를 찾지 못했습니다.'
+        }
+        $env:Path = "$sevenZipBin;$env:Path"
+        7z.exe i
+        """;
 
     private const string InstallationCommands = """
         git clone https://github.com/zmkfirmware/zmk.git C:\zmk

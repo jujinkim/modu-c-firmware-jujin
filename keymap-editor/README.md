@@ -74,6 +74,30 @@ dotnet run --project .\keymap-editor\src\ModuKeymapStudio\ModuKeymapStudio.cspro
 
 처음 설정할 때는 [ZMK Native Setup](https://zmk.dev/docs/development/local-toolchain/setup/native)과 [Zephyr Getting Started](https://docs.zephyrproject.org/latest/develop/getting_started/index.html)를 따르세요. 기본 설치 흐름은 다음과 같습니다.
 
+Windows에서 `python`/`py -3.12` 또는 `7z`/`7z.exe`를 찾을 수 없다는 오류가 나오면 먼저 다음 명령으로 Python 3.12와 7-Zip CLI를 설치하세요. 설치 후에는 새 PowerShell을 여는 것이 가장 간단합니다.
+
+```powershell
+winget install --exact --id Python.Python.3.12 --source winget
+winget install --exact --id 7zip.7zip --source winget
+
+py -3.12 --version
+```
+
+7-Zip을 설치했는데 현재 PowerShell에서 `7z.exe`만 찾지 못한다면 설치 폴더를 해당 세션의 `PATH`에 임시로 추가할 수 있습니다. 아래 설정은 사용자·시스템 환경 변수를 영구 변경하지 않습니다.
+
+```powershell
+$sevenZipBin = Join-Path $env:ProgramFiles '7-Zip'
+if (-not (Test-Path (Join-Path $sevenZipBin '7z.exe'))) {
+    throw 'C:\Program Files\7-Zip\7z.exe를 찾지 못했습니다.'
+}
+$env:Path = "$sevenZipBin;$env:Path"
+7z.exe i
+```
+
+이 앱 자체는 Windows 전용입니다. 다른 운영체제에서 별도로 ZMK 환경을 구성할 때는 `apt`, `dnf`, `pacman`, Homebrew 등 해당 환경의 패키지 관리자로 Python 3.12와 7-Zip CLI에 해당하는 패키지를 설치하고 공식 안내를 따르세요. 패키지 이름과 `PATH` 설정은 운영체제마다 다릅니다.
+
+그다음 ZMK 워크스페이스를 설정합니다.
+
 ```powershell
 git clone https://github.com/zmkfirmware/zmk.git C:\zmk
 Set-Location C:\zmk
