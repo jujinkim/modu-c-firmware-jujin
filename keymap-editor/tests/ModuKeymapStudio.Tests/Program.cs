@@ -327,7 +327,8 @@ static Task LanguageLabelsAndBootloader()
     True(bootloader.Matches("부트로더"), "부트로더 한글 검색");
     True(bootloader.Matches("boot mode retention"), "boot-mode retention 검색");
     True(bootloader.Detail.Contains("누른 쪽 하프", StringComparison.Ordinal), "분할 키보드 적용 범위 안내");
-    True(bootloader.Detail.Contains("일반 재시작", StringComparison.Ordinal), "MODU retention 주의 누락");
+    True(bootloader.Detail.Contains("부트로더로 진입", StringComparison.Ordinal), "부트로더 동작 안내");
+    True(!bootloader.Detail.Contains("일반 재시작", StringComparison.Ordinal), "오래된 boot-mode retention 경고 제거");
 
     var document = LoadRealDocument();
     var applied = KeymapEditor.ReplaceBinding(document, 0, 0, bootloader.Binding);

@@ -1078,7 +1078,7 @@ public partial class MainWindow : Window
     private static string DescribeBinding(string raw)
     {
         if (raw == "&bootloader" || raw == ZmkBehaviorCatalog.HeldBootloaderBinding)
-            return FriendlyBinding(raw) + " · " + ZmkBehaviorCatalog.BootloaderCaution;
+            return FriendlyBinding(raw) + " · " + ZmkBehaviorCatalog.BootloaderScopeNote;
         if (raw == ZmkBehaviorCatalog.HeldSystemResetBinding)
             return FriendlyBinding(raw) + " · " + ZmkBehaviorCatalog.ResetSourceCaution;
         if (!raw.StartsWith("&kp ", StringComparison.Ordinal)) return FriendlyBinding(raw);

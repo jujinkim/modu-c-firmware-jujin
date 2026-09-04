@@ -162,7 +162,7 @@
                                         <Run Text="0.5초 이상 계속 눌러야 부트로더 또는 시스템 재시작을 실행하며, 그 전에 떼면 아무 동작도 하지 않습니다." />
                                     </TextBlock>
                                     <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,6,0,0"
-                                               Text="분할 키보드에서는 이 키가 위치한 하프에만 적용됩니다. 현재 MODU 보드는 공식 boot-mode retention 설정이 없어 부트로더 진입 대신 일반 재시작만 될 수 있습니다." />
+                                               Text="분할 키보드에서는 이 키가 위치한 하프에만 적용됩니다." />
                                 </StackPanel>
                             </Border>
                         </Expander>
