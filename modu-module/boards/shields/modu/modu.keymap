@@ -10,6 +10,24 @@
 #include <dt-bindings/zmk/pointing.h>
 
 / {
+    behaviors {
+        mks_boot_hold: mks_bootloader_hold {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <500>;
+            bindings = <&bootloader>, <&none>;
+        };
+        mks_reset_hold: mks_system_reset_hold {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <500>;
+            bindings = <&sys_reset>, <&none>;
+        };
+
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
@@ -26,18 +44,18 @@
 &kp TAB   &kp Q    &kp W     &kp E     &kp R     &kp T       &kp Y     &kp U     &kp I     &kp O     &kp P     &kp BSPC
 &kp CAPS  &kp A    &kp S     &kp D     &kp F     &kp G       &kp H     &kp J     &kp K     &kp L     &kp SEMI  &kp SQT
 &kp LSHFT &kp Z    &kp X     &kp C     &kp V     &kp B       &kp N     &kp M     &kp COMMA &kp DOT   &kp FSLH  &kp RSHFT
-&kp LCTRL &kp LALT &kp LGUI  &none     &none     &none       &none     &none     &none     &kp RALT  &kp RCTRL &kp RET
-                             &mo 2     &kp SPACE &mo 1   &mo 1  &kp SPACE   &mo 1    &kp B
+&kp LCTRL &kp LGUI &kp LALT  &none     &none     &none       &none     &none     &none     &kp RALT  &kp RCTRL &kp LANG1
+                             &mo 2     &kp SPACE &mo 1   &mo 1  &kp RET   &mo 1    &kp B
             >;
         };
 
         lower_layer {
             bindings = <
-&trans   &kp F1  &kp F2    &kp F3    &kp F4    &kp F5                   &kp F6    &kp F7    &kp F8    &kp F9   &kp F10   &kp BSLH
-&trans   &kp F11   &kp HOME    &kp UP    &kp END   &kp N6                &mkp RCLK      &kp HOME    &kp UP    &kp END   &kp LBKT        &kp RBKT
-&trans   &kp F12   &kp LEFT    &kp DOWN    &kp RIGHT   &trans            &mkp MCLK     &kp LEFT    &kp DOWN    &kp RIGHT   &kp MINUS       &kp EQUAL 
-&trans &trans &trans &trans &trans  &trans        &mkp LCLK   &kp C_AC_BACK    &kp INS    &kp C_AC_FORWARD    &trans        &trans
-&trans   &trans  &trans    &trans    &trans    &trans      &trans       &trans    &trans    &trans    &trans      &trans
+&kp GRAVE   &kp F1  &kp F2    &kp F3    &kp F4    &kp F5                   &kp F6    &kp F7    &kp F8    &kp F9   &kp F10   &kp BSLH
+&trans   &kp F11   &kp C_AC_BACK    &kp UP    &kp C_AC_FORWARD   &kp N6                &mkp RCLK      &kp C_AC_BACK    &kp UP    &kp C_AC_FORWARD   &kp LBKT        &kp RBKT
+&trans   &kp F12   &kp LEFT    &kp DOWN    &kp RIGHT   &kp PG_UP            &mkp MCLK     &kp LEFT    &kp DOWN    &kp RIGHT   &kp MINUS       &kp EQUAL 
+&trans &trans &kp HOME &trans &kp END  &kp PG_DN        &mkp LCLK   &kp HOME    &kp INS    &kp END    &trans        &trans
+&trans   &trans  &trans    &trans    &trans    &trans      &trans       &trans    &trans    &kp LANG5    &kp LANG3      &kp LANG4
                             &trans    &trans    &trans      &trans      &trans    &trans   &trans
             >;
         };
@@ -45,10 +63,10 @@
         feature {
             display-name = "Feature";
             bindings = <
-                &trans  &kp C_PREV  &kp C_PP  &kp C_NEXT  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-                &trans  &kp C_MUTE  &kp C_VOL_DN  &kp C_VOL_UP  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-                &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-                &bt BT_CLR  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &bt BT_SEL 4  &trans  &trans  &trans  &trans  &trans  &trans
+                &bt BT_CLR  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &mks_boot_hold 0 0  &mks_boot_hold 0 0  &trans  &trans  &trans  &trans  &trans
+                &trans  &trans  &trans  &trans  &trans  &mks_reset_hold 0 0  &mks_reset_hold 0 0  &trans  &trans  &trans  &trans  &trans
+                &trans  &kp C_PREV  &kp C_PP  &kp C_NEXT  &trans  &trans  &trans  &trans  &kp C_PREV  &kp C_PP  &kp C_NEXT  &trans
+                &trans  &kp C_VOL_DN  &kp C_MUTE  &kp C_VOL_UP  &trans  &trans  &trans  &trans  &kp C_VOL_DN  &kp C_MUTE  &kp C_VOL_UP  &trans
                 &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
                 &trans  &trans  &trans  &trans  &trans  &trans  &trans
             >;
