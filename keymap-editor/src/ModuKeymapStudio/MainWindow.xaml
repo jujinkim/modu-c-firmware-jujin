@@ -104,11 +104,19 @@
                     <StackPanel>
                         <DockPanel LastChildFill="True">
                             <Button DockPanel.Dock="Right" Content="?" Width="29" Height="29" Padding="0"
-                                    FontWeight="Bold" FontSize="15" ToolTip="K_·C_ 키코드 차이 도움말"
+                                    FontWeight="Bold" FontSize="15" ToolTip="키코드 차이·지연 설정 및 사용법"
                                     Click="KeySelectionHelp_Click" />
                             <TextBlock Text="선택한 키" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" />
                         </DockPanel>
                         <TextBlock x:Name="SelectedKeyText" Text="키를 클릭해 바인딩을 편집하세요." Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,14" TextWrapping="Wrap" />
+
+                        <StackPanel x:Name="DelayPanel" Orientation="Horizontal" Margin="0,0,0,14" IsEnabled="False">
+                            <CheckBox x:Name="DelayCheckBox" Content="지연" VerticalAlignment="Center" Margin="0,0,10,0"
+                                      Checked="DelayCheckBox_Changed" Unchecked="DelayCheckBox_Changed"
+                                      ToolTip="설정한 시간 이상 누르면 실행하고, 그 전에 떼면 실행하지 않습니다." />
+                            <ComboBox x:Name="DelayBox" Width="100" SelectedValuePath="Milliseconds" DisplayMemberPath="Label" IsEnabled="False" />
+                            <Button Content="지연 적용" Click="ApplyDelay_Click" Margin="8,0,0,0" Padding="10,5" />
+                        </StackPanel>
 
                         <DockPanel>
                             <TextBlock x:Name="PresetCountText" DockPanel.Dock="Right" Foreground="{DynamicResource MutedBrush}" FontSize="11" VerticalAlignment="Center" />
@@ -158,8 +166,8 @@
                                         <Run Text="키를 누르는 즉시 &amp;bootloader를 실행합니다." />
                                     </TextBlock>
                                     <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0">
-                                        <Run FontWeight="SemiBold" Text="500ms 길게 누르기: " />
-                                        <Run Text="0.5초 이상 계속 눌러야 부트로더 또는 시스템 재시작을 실행하며, 그 전에 떼면 아무 동작도 하지 않습니다." />
+                                        <Run FontWeight="SemiBold" Text="지연: " />
+                                        <Run Text="지연을 체크하고 50~1000ms를 선택하세요. 설정한 시간 이상 계속 눌러야 실행하며, 그 전에 떼면 아무 동작도 하지 않습니다. 모든 키·동작에 사용할 수 있습니다." />
                                     </TextBlock>
                                     <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,6,0,0"
                                                Text="분할 키보드에서는 이 키가 위치한 하프에만 적용됩니다." />

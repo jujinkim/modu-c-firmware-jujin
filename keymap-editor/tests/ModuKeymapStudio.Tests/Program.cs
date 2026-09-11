@@ -1,3 +1,4 @@
+global using System.IO;
 using System.Diagnostics;
 using System.Text;
 using ModuKeymapStudio.Core.Build;
@@ -27,6 +28,10 @@ var tests = new (string Name, Func<Task> Run)[]
     ("공식 ZMK 368개 키코드와 영문명·기호·별칭 검색", ZmkKeycodeCatalogCoverage),
     ("LANG3/4/5 라벨과 부트로더 동작", LanguageLabelsAndBootloader),
     ("500ms 홀드 부트로더·시스템 리셋 정의", SafetyHoldBehaviors),
+    ("지연: 20단계·모든 키코드·매개변수·재열기", DelayTests.RoundTrip),
+    ("지연: 해제·독립성·기존 500ms·실행 취소·원문 보존", DelayTests.Editing),
+    ("지연: 레이어 삭제 차단·번호 보정", DelayTests.LayerReferences),
+    ("지연: 선택 패널과 짧은 키캡 표시", DelayUiTests.Run),
     ("테마 설정 JSON 호환성과 preference 병합", ThemeSettingsCompatibility),
     ("빌드 프로세스 성공/실패/취소", BuildProcessScenarios),
     ("빌드 환경 사전 점검 통과/실패", BuildEnvironmentPreflight)
@@ -50,6 +55,8 @@ foreach (var test in tests)
 
 Console.WriteLine();
 Console.WriteLine($"{tests.Length - failures.Count}/{tests.Length} tests passed");
+if (failures.Count == 0 && args.Length == 2 && args[0] == "--delay-fixture")
+    File.WriteAllText(args[1], DelayTests.CreateFixture().Source);
 return failures.Count == 0 ? 0 : 1;
 
 static Task RealKeymapShape()

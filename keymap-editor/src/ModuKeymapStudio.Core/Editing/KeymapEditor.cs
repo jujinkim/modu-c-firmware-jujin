@@ -252,10 +252,11 @@ public static partial class KeymapEditor
         {
             foreach (var binding in layer.Bindings)
             {
-                var match = ReferenceRegex().Match(binding.Raw);
+                var delayed = GetDelayedBinding(document, binding.Raw);
+                var match = ReferenceRegex().Match(delayed?.RawBinding ?? binding.Raw);
                 if (!match.Success || !LayerBehaviors.Contains(match.Groups["behavior"].Value)) continue;
 
-                var targetGroup = match.Groups["target"];
+                var targetGroup = (delayed is null ? match : ReferenceRegex().Match(binding.Raw)).Groups["target"];
                 var target = 0;
                 var isResolved = targetGroup.Success && int.TryParse(targetGroup.Value, NumberStyles.None, CultureInfo.InvariantCulture, out target);
                 references.Add(new LayerReference(

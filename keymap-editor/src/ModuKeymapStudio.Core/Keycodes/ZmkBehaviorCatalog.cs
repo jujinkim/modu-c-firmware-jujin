@@ -16,17 +16,21 @@ public static class ZmkBehaviorCatalog
 
     public static ZmkBehaviorOption HeldBootloader { get; } = new(
         "시스템·전원",
-        "500ms 길게 눌러 부트로더 진입",
+        "부트로더 진입 (500ms)",
         HeldBootloaderBinding,
         $"짧게 누르면 아무 동작도 하지 않습니다. {BootloaderScopeNote}",
         "hold held 500ms long press bootloader boot mode retention dfu 길게 홀드 부트로더");
 
     public static ZmkBehaviorOption HeldSystemReset { get; } = new(
         "시스템·전원",
-        "500ms 길게 눌러 시스템 재시작",
+        "시스템 재시작 (500ms)",
         HeldSystemResetBinding,
         $"짧게 누르면 아무 동작도 하지 않습니다. {ResetSourceCaution}",
         "hold held 500ms long press sys reset restart 길게 홀드 시스템 재시작 리셋");
 
-    public static IReadOnlyList<ZmkBehaviorOption> All { get; } = [Bootloader, HeldBootloader, HeldSystemReset];
+    public static ZmkBehaviorOption SystemReset { get; } = new(
+        "시스템·전원", "시스템 재시작", "&sys_reset", ResetSourceCaution,
+        "sys reset restart 시스템 재시작 리셋");
+
+    public static IReadOnlyList<ZmkBehaviorOption> All { get; } = [Bootloader, SystemReset];
 }

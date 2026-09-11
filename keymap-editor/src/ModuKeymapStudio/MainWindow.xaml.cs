@@ -42,6 +42,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DelayBox.ItemsSource = KeymapEditor.DelayOptions.Select(ms => new DelayChoice(ms)).ToArray();
+        DelayBox.SelectedValue = 500;
         CategoryBox.ItemsSource = new[] { "전체" }
             .Concat(ZmkKeycodeCatalog.Categories)
             .Concat(["Bluetooth", "마우스", "레이어"])
@@ -334,6 +336,17 @@ public partial class MainWindow : Window
 
     private void ApplyRaw_Click(object sender, RoutedEventArgs e) => ApplyBinding(RawBindingBox.Text);
 
+    private void DelayCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (DelayBox is not null) DelayBox.IsEnabled = DelayCheckBox.IsChecked == true;
+    }
+
+    private void ApplyDelay_Click(object sender, RoutedEventArgs e)
+    {
+        if (_document is null || _selectedKey is null) return;
+        ApplyBinding(_document.Layers[_selectedLayer].Bindings[_selectedKey.Value].Raw);
+    }
+
     private void ApplyBehavior_Click(object sender, RoutedEventArgs e)
     {
         if (BehaviorBox.SelectedValue is not string behavior) return;
@@ -376,14 +389,13 @@ public partial class MainWindow : Window
         }
         try
         {
-            var updated = raw.Trim() switch
+            if (DelayCheckBox.IsChecked == true && DelayBox.SelectedValue is not int)
             {
-                ZmkBehaviorCatalog.HeldBootloaderBinding => KeymapEditor.SetSafetyHoldBinding(
-                    _document, _selectedLayer, _selectedKey.Value, SafetyHoldAction.Bootloader),
-                ZmkBehaviorCatalog.HeldSystemResetBinding => KeymapEditor.SetSafetyHoldBinding(
-                    _document, _selectedLayer, _selectedKey.Value, SafetyHoldAction.SystemReset),
-                _ => KeymapEditor.ReplaceBinding(_document, _selectedLayer, _selectedKey.Value, raw)
-            };
+                ShowBindingWarning("지연 시간을 선택하세요.");
+                return;
+            }
+            var updated = KeymapEditor.SetDelayedBinding(_document, _selectedLayer, _selectedKey.Value, raw,
+                DelayCheckBox.IsChecked == true ? (int)DelayBox.SelectedValue : null);
             Commit(updated, _selectedLayer, _selectedKey);
             StatusText.Text = $"레이어 {_selectedLayer}, 키 {_selectedKey.Value + 1}을(를) {raw.Trim()}로 변경했습니다.";
         }
@@ -405,9 +417,9 @@ public partial class MainWindow : Window
         LayerTabs.SelectedIndex = _selectedLayer;
         _refreshing = false;
         RefreshKeyboard();
+        RefreshDocumentState();
         RefreshSelectionEditor();
         RefreshPresetList();
-        RefreshDocumentState();
     }
 
     private void RefreshKeyboard()
@@ -760,8 +772,10 @@ public partial class MainWindow : Window
         _ => operation.ToString()
     };
 
-    private static Grid CreateKeycapContent(string raw, int index, double minWidth, bool isTransparent)
+    private Grid CreateKeycapContent(string raw, int index, double minWidth, bool isTransparent)
     {
+        var delayed = _document is null ? null : KeymapEditor.GetDelayedBinding(_document, raw);
+        raw = delayed?.RawBinding ?? raw;
         var presentation = GetKeycapPresentation(raw);
         var grid = new Grid { Width = minWidth - 8, Height = 62 };
 
@@ -893,7 +907,24 @@ public partial class MainWindow : Window
 
         foreach (var text in FindVisualChildren<TextBlock>(grid).Where(item => item.ReadLocalValue(TextBlock.ForegroundProperty) == DependencyProperty.UnsetValue))
             text.SetResourceReference(TextBlock.ForegroundProperty, isTransparent ? "TransparentKeyTextBrush" : "KeyTextBrush");
-        return grid;
+        if (delayed is null) return grid;
+        var delayedGrid = new Grid { Width = minWidth - 8, Height = 62 };
+        delayedGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+        delayedGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var suffix = new TextBlock
+        {
+            Text = delayed.Suffix,
+            FontSize = 10,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        suffix.SetResourceReference(TextBlock.ForegroundProperty,
+            isTransparent ? "TransparentKeyDetailBrush" : "KeyDetailBrush");
+        delayedGrid.Children.Add(suffix);
+        var content = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = grid };
+        Grid.SetRow(content, 1);
+        delayedGrid.Children.Add(content);
+        return delayedGrid;
     }
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
@@ -923,16 +954,24 @@ public partial class MainWindow : Window
 
     private void RefreshSelectionEditor()
     {
+        DelayPanel.IsEnabled = _document is not null && _selectedKey is not null;
         if (_document is null || _selectedKey is null)
         {
             SelectedKeyText.Text = "키를 클릭해 바인딩을 편집하세요.";
             RawBindingBox.Text = string.Empty;
+            DelayCheckBox.IsChecked = false;
+            DelayBox.SelectedValue = 500;
             return;
         }
         var binding = _document.Layers[_selectedLayer].Bindings[_selectedKey.Value];
-        SelectedKeyText.Text = $"레이어 {_selectedLayer} · 키 {_selectedKey.Value + 1} · {binding.Raw}";
-        RawBindingBox.Text = binding.Raw;
-        PopulateBehaviorFields(binding.Raw);
+        var delayed = KeymapEditor.GetDelayedBinding(_document, binding.Raw);
+        var raw = delayed?.RawBinding ?? binding.Raw;
+        SelectedKeyText.Text = $"레이어 {_selectedLayer} · 키 {_selectedKey.Value + 1} · {raw}" +
+            (delayed is null ? string.Empty : $" {delayed.Suffix}");
+        DelayCheckBox.IsChecked = delayed is not null;
+        DelayBox.SelectedValue = delayed?.DelayMs ?? 500;
+        RawBindingBox.Text = raw;
+        PopulateBehaviorFields(raw);
     }
 
     private void PopulateBehaviorFields(string raw)
@@ -1075,8 +1114,10 @@ public partial class MainWindow : Window
         .Replace('_', ' ');
     }
 
-    private static string DescribeBinding(string raw)
+    private string DescribeBinding(string raw)
     {
+        var delayed = _document is null ? null : KeymapEditor.GetDelayedBinding(_document, raw);
+        if (delayed is not null) return DescribeBinding(delayed.RawBinding) + $" {delayed.Suffix}";
         if (raw == "&bootloader" || raw == ZmkBehaviorCatalog.HeldBootloaderBinding)
             return FriendlyBinding(raw) + " · " + ZmkBehaviorCatalog.BootloaderScopeNote;
         if (raw == ZmkBehaviorCatalog.HeldSystemResetBinding)
@@ -1126,6 +1167,10 @@ public partial class MainWindow : Window
     private sealed record ThemeChoice(string Label, ThemePreference Preference)
     {
         public override string ToString() => Label;
+    }
+    private sealed record DelayChoice(int Milliseconds)
+    {
+        public string Label => $"{Milliseconds}ms";
     }
     private sealed record KeycapPresentation(string CenterText, string? BaseCharacter, string? ShiftCharacter, string ZmkCode);
 }
