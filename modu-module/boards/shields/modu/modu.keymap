@@ -26,6 +26,21 @@
             bindings = <&sys_reset>, <&none>;
         };
 
+        mks_delay_1_action: mks_delay_1_action {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            wait-ms = <0>;
+            tap-ms = <0>;
+            bindings = <&macro_press &bt BT_CLR>, <&macro_pause_for_release>, <&macro_release &bt BT_CLR>;
+        };
+        mks_delay_1: mks_delay_1 {
+            /* mks-delay-args: 3 */
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <500>;
+            bindings = <&mks_delay_1_action>, <&none>;
+        };
     };
 
     keymap {
@@ -54,16 +69,16 @@
 &kp GRAVE   &kp F1  &kp F2    &kp F3    &kp F4    &kp F5                   &kp F6    &kp F7    &kp F8    &kp F9   &kp F10   &kp BSLH
 &trans   &kp F11   &kp C_AC_BACK    &kp UP    &kp C_AC_FORWARD   &kp N6                &mkp RCLK      &kp C_AC_BACK    &kp UP    &kp C_AC_FORWARD   &kp LBKT        &kp RBKT
 &trans   &kp F12   &kp LEFT    &kp DOWN    &kp RIGHT   &kp PG_UP            &mkp MCLK     &kp LEFT    &kp DOWN    &kp RIGHT   &kp MINUS       &kp EQUAL 
-&trans &trans &kp HOME &trans &kp END  &kp PG_DN        &mkp LCLK   &kp HOME    &kp INS    &kp END    &trans        &trans
+&trans &trans &kp HOME &trans &kp END  &kp PG_DN        &mkp LCLK   &kp HOME    &kp INS    &kp END    &kp PG_DN        &kp PG_UP
 &trans   &trans  &trans    &trans    &trans    &trans      &trans       &trans    &trans    &kp LANG5    &kp LANG3      &kp LANG4
-                            &trans    &trans    &trans      &trans      &trans    &trans   &trans
+                            &trans    &trans    &trans      &trans      &kp SPACE    &trans   &trans
             >;
         };
 
         feature {
             display-name = "Feature";
             bindings = <
-                &bt BT_CLR  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &mks_boot_hold 0 0  &mks_boot_hold 0 0  &trans  &trans  &trans  &trans  &trans
+                &mks_delay_1 0 0  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &mks_boot_hold 0 0  &mks_boot_hold 0 0  &trans  &trans  &trans  &trans  &trans
                 &trans  &trans  &trans  &trans  &trans  &mks_reset_hold 0 0  &mks_reset_hold 0 0  &trans  &trans  &trans  &trans  &trans
                 &trans  &kp C_PREV  &kp C_PP  &kp C_NEXT  &trans  &trans  &trans  &trans  &kp C_PREV  &kp C_PP  &kp C_NEXT  &trans
                 &trans  &kp C_VOL_DN  &kp C_MUTE  &kp C_VOL_UP  &trans  &trans  &trans  &trans  &kp C_VOL_DN  &kp C_MUTE  &kp C_VOL_UP  &trans
